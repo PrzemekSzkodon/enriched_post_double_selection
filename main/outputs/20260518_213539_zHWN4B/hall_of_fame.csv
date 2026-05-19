@@ -1,0 +1,10 @@
+Complexity,Loss,Equation
+1,5.1196847,"1.7816943"
+2,3.6623402,"square(x1)"
+4,2.7534118,"square(x1) + x2"
+5,2.438438,"square(x3) + square(x1)"
+6,2.3326867,"(square(x1) + 0.6486364) + x2"
+7,1.8739864,"(square(x3) + x2) + square(x1)"
+8,1.7312225,"sqrt(square(x3)) + (x2 + square(x1))"
+9,1.4360344,"((square(x3) * 0.6343678) + x2) + square(x1)"
+11,1.2923576,"(((x0 + square(x3)) * 0.5615713) + x2) + square(x1)"

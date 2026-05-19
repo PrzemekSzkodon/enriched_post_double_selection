@@ -1,0 +1,10 @@
+Complexity,Loss,Equation
+1,8.669677,"x1"
+3,6.979179,"x1 + x4"
+4,4.6631193,"square(x1) * x2"
+6,3.9223218,"x4 + (x2 * square(x1))"
+8,3.5342171,"(x4 + (x2 * square(x1))) + -0.6230349"
+9,2.808882,"(square(x1) * x2) + log(sqrt(square(x3)))"
+10,2.7942686,"(log(square(x3)) * 0.54728144) + (square(x1) * x2)"
+11,2.761338,"(square(x3) + x4) + ((x2 * square(x1)) + -1.6883093)"
+12,2.0618925,"((log(square(x3)) * 0.54728144) + x4) + (square(x1) * x2)"

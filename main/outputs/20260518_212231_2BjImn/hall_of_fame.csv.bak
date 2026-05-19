@@ -1,0 +1,8 @@
+Complexity,Loss,Equation
+1,6.1956997,"-0.66054523"
+3,5.2881513,"x5 + -0.6026519"
+4,4.8983164,"log(sqrt(square(x3)))"
+6,4.0969377,"log(sqrt(square(x3))) + x5"
+8,3.6855474,"(log(sqrt(square(x3))) + x5) + x2"
+9,3.1165297,"log(sqrt(square(x3))) + (x2 * square(x1))"
+11,2.4508815,"log(sqrt(square(x3))) + ((x2 * square(x1)) + x5)"
