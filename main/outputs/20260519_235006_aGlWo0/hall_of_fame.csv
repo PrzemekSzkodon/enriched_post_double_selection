@@ -1,0 +1,10 @@
+Complexity,Loss,Equation
+1,76.86121,"2.1997619"
+2,74.05554,"square(x0)"
+3,72.99649,"2.1887555 - x4"
+4,70.139404,"square(x0) - x4"
+5,56.73372,"x1 - log(square(x2))"
+6,48.151726,"x1 - log(square(square(x2)))"
+8,43.996883,"(x1 - log(square(square(x2)))) - x4"
+10,40.427612,"(x1 - x4) + (x1 - log(square(square(x2))))"
+12,40.26669,"(x1 - (x5 + x4)) + (x1 - log(square(square(x2))))"

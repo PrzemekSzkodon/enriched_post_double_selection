@@ -1,0 +1,9 @@
+Complexity,Loss,Equation
+1,182.14761,"5.4131966"
+3,136.63199,"square(square(x1))"
+4,133.57014,"square(x1 * x37)"
+5,76.61369,"x2 * square(square(x1))"
+6,52.02414,"(x2 * 5.5630517) * square(x1)"
+8,40.674885,"((x2 * 5.313808) * square(x1)) + 3.415995"
+10,32.59192,"((x2 * square(x1)) * 5.39873) - log(square(x3))"
+11,23.040274,"((x2 * square(x1)) * 5.2344713) - log(square(square(x3)))"

@@ -167,121 +167,151 @@ def dml_nn(X, d, y, n, p, n_folds=5):
 # ============================================================
 # 6. EPDS -- Enriched Post-Double Selection (your method)
 # ============================================================
-def epds(X, d, y, n, p, split=0.3, pysr_iters=40):
+EPDS_LOG = []
+
+def epds(X, d, y, n, p, pysr_iters=40, log=False):
     """
-    Enriched Post-Double Selection.
+    Enriched Post-Double Selection (EPDS).
 
-    Sample A: LASSO selection + PySR functional form recovery
-              + enriched dictionary construction
-    Sample B: PDS-LASSO on enriched dictionary + OLS
-
-    Steps:
-        1. Split data into Sample A and Sample B
-        2. [Sample A] LASSO(y ~ X), LASSO(d ~ X) -> S_y, S_d, S_union
-        3. [Sample A] PySR on (y ~ X[S_union]) -> recover functional forms
-        4. [Sample A] Build enriched dictionary x*
-        5. [Sample A] LASSO(y ~ x*), LASSO(d ~ x*) -> S*_y, S*_d
-        6. [Sample B] OLS(y ~ d + X[S*_y union S*_d]) -> beta_hat
+    Step 1: PySR on (y ~ X) and (d ~ X) -- full sample
+    Step 2: Extract exact terms PySR found
+    Step 3: Build x* = all original linear terms + exact PySR terms
+    Step 4: PDS-LASSO on x* -- full sample
+    Step 5: OLS on full sample -> valid beta_hat
     """
     try:
         from pysr import PySRRegressor
+        import sympy as sp
     except ImportError:
         raise ImportError("PySR not installed. Run: pip install pysr")
 
-    # ---- sample split ----
-    n_a   = int(n * split)
-    idx_a = np.arange(n_a)
-    idx_b = np.arange(n_a, n)
+    col_names = [f'x{i}' for i in range(p)]
 
-    X_a, d_a, y_a = X[idx_a], d[idx_a], y[idx_a]
-    X_b, d_b, y_b = X[idx_b], d[idx_b], y[idx_b]
+    # ---- step 1: PySR on full X ----
+    def run_pysr(X_in, y_in):
+        model = PySRRegressor(
+            niterations      = pysr_iters,
+            binary_operators = ['+', '-', '*'],
+            unary_operators  = ['square', 'log', 'sqrt'],
+            maxsize          = 20,
+            parsimony        = 0.0005,
+            model_selection  = 'best',
+            procs            = 0,
+            random_state     = 42,
+            verbosity        = 0,
+        )
+        model.fit(X_in, y_in, variable_names=col_names)
+        return model
 
-    n_a, n_b = len(idx_a), len(idx_b)
-    lam_a    = _theoretical_lambda(n_a, p)
+    model_y = run_pysr(X, y)
+    model_d = run_pysr(X, d)
 
-    # ---- step 2: initial LASSO selection on Sample A ----
-    lasso_y = Lasso(alpha=lam_a, max_iter=10000).fit(X_a, y_a)
-    lasso_d = Lasso(alpha=lam_a, max_iter=10000).fit(X_a, d_a)
+    # ---- step 2: extract exact terms ----
+    def extract_features(model):
+        cols = []
+        syms = {f'x{i}': sp.Symbol(f'x{i}') for i in range(p)}
+        try:
+            eq = model.sympy()
+        except Exception:
+            return cols
+        atoms = eq.atoms()
 
-    S_y     = set(np.where(lasso_y.coef_ != 0)[0])
-    S_d     = set(np.where(lasso_d.coef_ != 0)[0])
-    S_union = sorted(S_y | S_d)
+        for i in range(p):
+            s = syms[f'x{i}']
+            if sp.Pow(s, 2) in eq.atoms(sp.Pow) or s**2 in atoms:
+                cols.append(('sq', i, None))
 
-    if len(S_union) == 0:
-        # nothing selected -- fall back to pds_lasso on full sample
-        return pds_lasso(X, d, y, n, p)
+        for i in range(p):
+            for j in range(i+1, p):
+                si, sj = syms[f'x{i}'], syms[f'x{j}']
+                if si*sj in eq.atoms(sp.Mul) or sj*si in atoms:
+                    cols.append(('int', i, j))
 
-    # ---- step 3: PySR functional form recovery on Sample A ----
-    X_sel_a = np.column_stack([d_a, X_a[:, S_union]])
-    col_names = ['d'] + [f'x{i}' for i in S_union]
+        for i in range(p):
+            for j in range(p):
+                if i == j:
+                    continue
+                si, sj = syms[f'x{i}'], syms[f'x{j}']
+                if sp.Pow(si, 2)*sj in atoms or si**2*sj in atoms:
+                    cols.append(('cubic', i, j))
 
-    pysr_model = PySRRegressor(
-        niterations=pysr_iters,
-        binary_operators=['+', '-', '*'],
-        unary_operators=['square', 'log', 'sqrt'],
-        maxsize=12,
-        parsimony=0.0001,
-        model_selection='accuracy',
-        procs=0,
-        random_state=42,
-        verbosity=0,
-    )
-    pysr_model.fit(X_sel_a, y_a)
+        for i in range(p):
+            s = syms[f'x{i}']
+            if sp.log(s) in atoms or sp.log(sp.Abs(s)) in atoms:
+                cols.append(('log', i, None))
 
-    # ---- step 4: build enriched dictionary ----
-    def _enrich(X_in, d_in, S, pysr_eq):
-        """
-        Add PySR-recovered nonlinear terms to feature matrix.
-        Squares and pairwise interactions of selected variables.
-        """
-        cols = [d_in.reshape(-1, 1), X_in[:, S]]
+        for i in range(p):
+            s = syms[f'x{i}']
+            if sp.sqrt(s) in atoms or sp.Pow(s, sp.Rational(1,2)) in atoms:
+                cols.append(('sqrt', i, None))
 
-        # add squares of selected controls
-        for j in S:
-            cols.append((X_in[:, j] ** 2).reshape(-1, 1))
+        return cols
 
-        # add pairwise interactions of selected controls
-        S_list = list(S)
-        for i in range(len(S_list)):
-            for k in range(i + 1, len(S_list)):
-                j1, j2 = S_list[i], S_list[k]
-                cols.append((X_in[:, j1] * X_in[:, j2]).reshape(-1, 1))
+    def build_features(term_list, X_in):
+        cols = []
+        for term in term_list:
+            kind, i, j = term
+            if kind == 'sq':
+                cols.append(X_in[:, i]**2)
+            elif kind == 'int':
+                cols.append(X_in[:, i] * X_in[:, j])
+            elif kind == 'cubic':
+                cols.append(X_in[:, i]**2 * X_in[:, j])
+            elif kind == 'log':
+                cols.append(np.log(np.abs(X_in[:, i]) + 1e-6))
+            elif kind == 'sqrt':
+                cols.append(np.sqrt(np.abs(X_in[:, i])))
+        return cols
 
-        # add log of abs of selected controls
-        for j in S:
-            cols.append(np.log(np.abs(X_in[:, j]) + 1e-6).reshape(-1, 1))
+    terms_y = extract_features(model_y)
+    terms_d = extract_features(model_d)
+    all_terms = list(set(terms_y) | set(terms_d))
 
-        return np.column_stack(cols)
+    # ---- step 3: build enriched dictionary ----
+    def build_dict(X_in):
+        parts = [X_in]
+        nonlin = build_features(all_terms, X_in)
+        if nonlin:
+            parts.extend([f.reshape(-1, 1) if f.ndim == 1 else f
+                          for f in nonlin])
+        return np.column_stack(parts)
 
-    X_star_a = _enrich(X_a, d_a, S_union, pysr_model)
-    X_star_b = _enrich(X_b, d_b, S_union, pysr_model)
+    X_star = build_dict(X)
 
-    p_star   = X_star_a.shape[1]
-    lam_star = _theoretical_lambda(n_a, p_star)
+    # ---- step 4: PDS-LASSO on full enriched dictionary ----
+    p_star   = X_star.shape[1]
+    lam_star = _theoretical_lambda(n, p_star)
 
-    # ---- step 5: PDS-LASSO on enriched dictionary on Sample A ----
-    # note: first column is d -- skip it for LASSO selection
-    X_controls_a = X_star_a[:, 1:]
-    X_controls_b = X_star_b[:, 1:]
+    lasso_y2 = Lasso(alpha=lam_star, max_iter=10000).fit(X_star, y)
+    lasso_d2 = Lasso(alpha=lam_star, max_iter=10000).fit(X_star, d)
 
-    lasso_y2 = Lasso(alpha=lam_star, max_iter=10000).fit(X_controls_a, y_a)
-    lasso_d2 = Lasso(alpha=lam_star, max_iter=10000).fit(X_controls_a, d_a)
+    S_y = set(np.where(lasso_y2.coef_ != 0)[0])
+    S_d = set(np.where(lasso_d2.coef_ != 0)[0])
+    S   = sorted(S_y | S_d)
 
-    S_star_y = set(np.where(lasso_y2.coef_ != 0)[0])
-    S_star_d = set(np.where(lasso_d2.coef_ != 0)[0])
-    S_star   = sorted(S_star_y | S_star_d)
+    # ---- verbose ----
+    if log:
+        EPDS_LOG.append({
+            'eq_y'        : str(model_y.sympy()),
+            'eq_d'        : str(model_d.sympy()),
+            'loss_y'      : model_y.equations_['loss'].min(),
+            'loss_d'      : model_d.equations_['loss'].min(),
+            'terms_added' : len(all_terms),
+            'dict_size'   : X_star.shape[1],
+            'n_selected'  : len(S),
+            'S_y'         : sorted(S_y),
+            'S_d'         : sorted(S_d),
+            'S_union'     : S,
+        })
 
-    # in epds() -- replace the existing step 6 block
-    if len(S_star) == 0:
-        # enrichment added nothing -- fall back to original linear selection
-        if len(S_union) > 0:
-            X_final = np.column_stack([d_b, X_b[:, list(S_union)]])
-        else:
-            X_final = d_b.reshape(-1, 1)
+    # ---- step 5: OLS on full sample ----
+    if len(S) == 0:
+        X_final = d.reshape(-1, 1)
     else:
-        X_final = np.column_stack([d_b, X_controls_b[:, list(S_star)]])
+        X_final = np.column_stack([d, X_star[:, S]])
 
-    return _ols_result(y_b, X_final)
+    return _ols_result(y, X_final)
+
 
 # ============================================================
 # registry -- mirrors DGP_REGISTRY pattern
@@ -309,7 +339,7 @@ if __name__ == '__main__':
 
     for name, entry in ESTIMATOR_REGISTRY.items():
         if name == 'epds':
-            continue   # skip epds in quick check -- requires pysr
+            continue   # skip epds in quick check - requires pysr
         res = entry['fn'](X, d, y, n, p)
         covers = res['ci_low'] < beta0 < res['ci_high']
         print(f"{entry['label']:<30} "
