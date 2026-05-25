@@ -167,9 +167,10 @@ def dml_nn(X, d, y, n, p, n_folds=5):
 # ============================================================
 # 6. EPDS -- Enriched Post-Double Selection (your method)
 # ============================================================
+
 EPDS_LOG = []
 
-def epds(X, d, y, n, p, pysr_iters=40, log=False):
+def epds(X, d, y, n, p, pysr_iters=40, log=False, debug=False):
     """
     Enriched Post-Double Selection (EPDS).
 
@@ -178,6 +179,15 @@ def epds(X, d, y, n, p, pysr_iters=40, log=False):
     Step 3: Build x* = all original linear terms + exact PySR terms
     Step 4: PDS-LASSO on x* -- full sample
     Step 5: OLS on full sample -> valid beta_hat
+
+    Parameters
+    ----------
+    debug : bool
+        If True, prints every step to stdout: Pareto fronts, chosen
+        equations, extracted terms, dictionary composition, selected set.
+        Use in notebooks for live inspection.
+    log : bool
+        If True, appends a structured record to EPDS_LOG.
     """
     try:
         from pysr import PySRRegressor
@@ -187,65 +197,211 @@ def epds(X, d, y, n, p, pysr_iters=40, log=False):
 
     col_names = [f'x{i}' for i in range(p)]
 
-    # ---- step 1: PySR on full X ----
-    def run_pysr(X_in, y_in):
+    def _print_header(title):
+        if debug:
+            print(f"\n{'=' * 70}")
+            print(f"  {title}")
+            print(f"{'=' * 70}")
+
+    def _print_step(msg):
+        if debug:
+            print(f"  → {msg}")
+
+    _print_header("EPDS START")
+    if debug:
+        print(f"  n = {n}, p = {p}, pysr_iters = {pysr_iters}")
+
+    # ============================================================
+    # STEP 1: run PySR on (X, y) and (X, d)
+    # ============================================================
+    def run_pysr(X_in, y_in, label):
+        _print_header(f"STEP 1{label}: PySR fit for {label}")
         model = PySRRegressor(
             niterations      = pysr_iters,
             binary_operators = ['+', '-', '*'],
             unary_operators  = ['square', 'log', 'sqrt'],
-            maxsize          = 20,
-            parsimony        = 0.0005,
+            maxsize          = 50,
+            parsimony        = 0.005,
             model_selection  = 'best',
             procs            = 0,
             random_state     = 42,
             verbosity        = 0,
         )
         model.fit(X_in, y_in, variable_names=col_names)
+
+        if debug:
+            eqs = model.equations_
+            print(f"\n  Pareto frontier ({len(eqs)} equations):")
+            print(f"  {'idx':>3} {'complex':>7} {'loss':>12} {'score':>8}  equation")
+            print(f"  {'-'*3} {'-'*7} {'-'*12} {'-'*8}  {'-'*40}")
+            for idx, row in eqs.iterrows():
+                eq_str = str(row['equation'])
+                if len(eq_str) > 60:
+                    eq_str = eq_str[:57] + '...'
+                print(f"  {idx:>3} {row['complexity']:>7} "
+                      f"{row['loss']:>12.6f} {row.get('score', 0):>8.4f}  {eq_str}")
+
+            best_idx = _selected_idx(model, eqs)
+
+            try:
+                chosen_eq = model.sympy()
+                print(f"\n  Chosen equation (model_selection='best'):")
+                print(f"    raw:      {chosen_eq}")
+                try:
+                    chosen_expanded = sp.expand(chosen_eq)
+                    if chosen_expanded != chosen_eq:
+                        print(f"    expanded: {chosen_expanded}")
+                except Exception:
+                    pass
+                print(f"    complexity = {eqs.loc[best_idx, 'complexity']}, "
+                      f"loss = {eqs.loc[best_idx, 'loss']:.6f}")
+            except Exception as e:
+                print(f"  WARNING: could not extract sympy form: {e}")
+
         return model
 
-    model_y = run_pysr(X, y)
-    model_d = run_pysr(X, d)
+    def model_selection_is_loss(model):
+        return getattr(model, 'model_selection', 'best') == 'accuracy'
 
-    # ---- step 2: extract exact terms ----
-    def extract_features(model):
-        cols = []
-        syms = {f'x{i}': sp.Symbol(f'x{i}') for i in range(p)}
+    def _selected_idx(model, eqs):
+        try:
+            chosen_sympy = model.sympy()
+            for idx, row in eqs.iterrows():
+                if str(row['equation']).strip() == str(chosen_sympy).strip():
+                    return idx
+        except Exception:
+            pass
+        return eqs['loss'].idxmin()
+
+    model_y = run_pysr(X, y, label='Y')
+    model_d = run_pysr(X, d, label='D')
+
+    # ============================================================
+    # STEP 2: extract exact terms (uses the robust extractor)
+    # ============================================================
+    _print_header("STEP 2: extract symbolic terms from PySR equations")
+
+    def extract_features(model, label):
+        cols = set()
+
         try:
             eq = model.sympy()
+        except Exception as e:
+            if debug:
+                print(f"  [{label}] failed to extract sympy form: {e}")
+            return []
+
+        if debug:
+            print(f"\n  [{label}] raw equation:    {eq}")
+            try:
+                eq_expanded = sp.expand(eq)
+                print(f"  [{label}] expanded form:   {eq_expanded}")
+            except Exception:
+                eq_expanded = eq
+
+        sym_to_idx = {sp.Symbol(f'x{i}'): i for i in range(p)}
+        half = sp.Rational(1, 2)
+
+        # ---- step A: capture log(x_i) anywhere in the tree ----
+        for log_node in eq.atoms(sp.log):
+            arg = log_node.args[0]
+            if arg in sym_to_idx:                                       # log(x_i)
+                cols.add(('log', sym_to_idx[arg], None))
+            elif isinstance(arg, sp.Abs) and arg.args[0] in sym_to_idx: # log(|x_i|)
+                cols.add(('log', sym_to_idx[arg.args[0]], None))
+            elif isinstance(arg, sp.Pow):                               # log(x_i**k) — k even ⟹ log|x_i| up to constant
+                base, exp = arg.args
+                if base in sym_to_idx and exp.is_integer and exp > 0 and exp % 2 == 0:
+                    cols.add(('log', sym_to_idx[base], None))
+
+        # step B: sqrt
+        for pow_node in eq.atoms(sp.Pow):
+            base, exp = pow_node.args
+            if exp == half:
+                if base in sym_to_idx:
+                    cols.add(('sqrt', sym_to_idx[base], None))
+                elif isinstance(base, sp.Abs) and base.args[0] in sym_to_idx:
+                    cols.add(('sqrt', sym_to_idx[base.args[0]], None))
+
+        # step C: polynomial monomials
+        try:
+            eq_expanded = sp.expand(eq)
         except Exception:
-            return cols
-        atoms = eq.atoms()
+            eq_expanded = eq
 
-        for i in range(p):
-            s = syms[f'x{i}']
-            if sp.Pow(s, 2) in eq.atoms(sp.Pow) or s**2 in atoms:
-                cols.append(('sq', i, None))
+        for term in sp.Add.make_args(eq_expanded):
+            coeff, sym_part = term.as_coeff_Mul()
+            if sym_part == 1:
+                continue
 
-        for i in range(p):
-            for j in range(i+1, p):
-                si, sj = syms[f'x{i}'], syms[f'x{j}']
-                if si*sj in eq.atoms(sp.Mul) or sj*si in atoms:
-                    cols.append(('int', i, j))
+            var_powers = {}
+            has_nonpoly = False
 
-        for i in range(p):
-            for j in range(p):
-                if i == j:
-                    continue
-                si, sj = syms[f'x{i}'], syms[f'x{j}']
-                if sp.Pow(si, 2)*sj in atoms or si**2*sj in atoms:
-                    cols.append(('cubic', i, j))
+            for factor in sp.Mul.make_args(sym_part):
+                if factor in sym_to_idx:
+                    idx = sym_to_idx[factor]
+                    var_powers[idx] = var_powers.get(idx, 0) + 1
+                elif isinstance(factor, sp.Pow) and factor.args[0] in sym_to_idx:
+                    base, exp = factor.args
+                    if exp.is_integer and exp > 0:
+                        idx = sym_to_idx[base]
+                        var_powers[idx] = var_powers.get(idx, 0) + int(exp)
+                    else:
+                        has_nonpoly = True
+                else:
+                    has_nonpoly = True
 
-        for i in range(p):
-            s = syms[f'x{i}']
-            if sp.log(s) in atoms or sp.log(sp.Abs(s)) in atoms:
-                cols.append(('log', i, None))
+            if has_nonpoly or not var_powers:
+                continue
 
-        for i in range(p):
-            s = syms[f'x{i}']
-            if sp.sqrt(s) in atoms or sp.Pow(s, sp.Rational(1,2)) in atoms:
-                cols.append(('sqrt', i, None))
+            total_deg = sum(var_powers.values())
+            items = sorted(var_powers.items())
+
+            if total_deg == 1:
+                continue
+            elif total_deg == 2:
+                if len(items) == 1:
+                    cols.add(('sq', items[0][0], None))
+                else:
+                    i, j = sorted([items[0][0], items[1][0]])
+                    cols.add(('int', i, j))
+            elif total_deg == 3 and len(items) == 2:
+                (a, pa), (b, pb) = items
+                if pa == 2 and pb == 1:
+                    cols.add(('cubic', a, b))
+                elif pa == 1 and pb == 2:
+                    cols.add(('cubic', b, a))
+
+        cols = sorted(cols)
+
+        if debug:
+            print(f"  [{label}] extracted {len(cols)} terms:")
+            if not cols:
+                print(f"    (none)")
+            for term in cols:
+                kind, i, j = term
+                if kind == 'sq':     print(f"    x{i}^2")
+                elif kind == 'int':  print(f"    x{i} * x{j}")
+                elif kind == 'cubic':print(f"    x{i}^2 * x{j}")
+                elif kind == 'log':  print(f"    log(x{i})")
+                elif kind == 'sqrt': print(f"    sqrt(x{i})")
 
         return cols
+
+    terms_y = extract_features(model_y, label='Y')
+    terms_d = extract_features(model_d, label='D')
+
+    all_terms = sorted(set(terms_y) | set(terms_d))
+    if debug:
+        print(f"\n  Union of terms: {len(all_terms)} "
+              f"(Y-only: {len(set(terms_y) - set(terms_d))}, "
+              f"D-only: {len(set(terms_d) - set(terms_y))}, "
+              f"both: {len(set(terms_y) & set(terms_d))})")
+
+    # ============================================================
+    # STEP 3: build enriched feature dictionary
+    # ============================================================
+    _print_header("STEP 3: build enriched feature dictionary")
 
     def build_features(term_list, X_in):
         cols = []
@@ -263,11 +419,6 @@ def epds(X, d, y, n, p, pysr_iters=40, log=False):
                 cols.append(np.sqrt(np.abs(X_in[:, i])))
         return cols
 
-    terms_y = extract_features(model_y)
-    terms_d = extract_features(model_d)
-    all_terms = list(set(terms_y) | set(terms_d))
-
-    # ---- step 3: build enriched dictionary ----
     def build_dict(X_in):
         parts = [X_in]
         nonlin = build_features(all_terms, X_in)
@@ -278,9 +429,22 @@ def epds(X, d, y, n, p, pysr_iters=40, log=False):
 
     X_star = build_dict(X)
 
-    # ---- step 4: PDS-LASSO on full enriched dictionary ----
+    if debug:
+        print(f"  original X:     shape ({n}, {p})")
+        print(f"  added terms:    {len(all_terms)}")
+        print(f"  enriched X*:    shape {X_star.shape}")
+        print(f"  → dictionary went from {p} to {X_star.shape[1]} features")
+
+    # ============================================================
+    # STEP 4: PDS-LASSO on enriched dictionary
+    # ============================================================
+    _print_header("STEP 4: PDS-LASSO on enriched dictionary")
+
     p_star   = X_star.shape[1]
     lam_star = _theoretical_lambda(n, p_star)
+
+    if debug:
+        print(f"  p* = {p_star}, lambda* = {lam_star:.6f}")
 
     lasso_y2 = Lasso(alpha=lam_star, max_iter=10000).fit(X_star, y)
     lasso_d2 = Lasso(alpha=lam_star, max_iter=10000).fit(X_star, d)
@@ -289,7 +453,28 @@ def epds(X, d, y, n, p, pysr_iters=40, log=False):
     S_d = set(np.where(lasso_d2.coef_ != 0)[0])
     S   = sorted(S_y | S_d)
 
-    # ---- verbose ----
+    if debug:
+        def _label_feature(idx):
+            if idx < p:
+                return f"x{idx}"
+            term = all_terms[idx - p]
+            kind, i, j = term
+            if kind == 'sq':     return f"x{i}^2"
+            elif kind == 'int':  return f"x{i}*x{j}"
+            elif kind == 'cubic':return f"x{i}^2*x{j}"
+            elif kind == 'log':  return f"log(x{i})"
+            elif kind == 'sqrt': return f"sqrt(x{i})"
+
+        print(f"\n  LASSO(Y ~ X*) selected {len(S_y)} features:")
+        print(f"    {[_label_feature(i) for i in sorted(S_y)]}")
+        print(f"\n  LASSO(D ~ X*) selected {len(S_d)} features:")
+        print(f"    {[_label_feature(i) for i in sorted(S_d)]}")
+        print(f"\n  Union (S_y ∪ S_d): {len(S)} features:")
+        print(f"    {[_label_feature(i) for i in S]}")
+
+    # ============================================================
+    # log (structured record)
+    # ============================================================
     if log:
         EPDS_LOG.append({
             'eq_y'        : str(model_y.sympy()),
@@ -304,14 +489,31 @@ def epds(X, d, y, n, p, pysr_iters=40, log=False):
             'S_union'     : S,
         })
 
-    # ---- step 5: OLS on full sample ----
+    # ============================================================
+    # STEP 5: final OLS on full sample
+    # ============================================================
+    _print_header("STEP 5: final OLS on full sample")
+
     if len(S) == 0:
+        if debug:
+            print(f"  empty selection — falling back to y ~ d only")
         X_final = d.reshape(-1, 1)
     else:
         X_final = np.column_stack([d, X_star[:, S]])
+        if debug:
+            print(f"  regressing y on d + {len(S)} selected features")
+            print(f"  final design matrix: shape {X_final.shape}")
 
-    return _ols_result(y, X_final)
+    result = _ols_result(y, X_final)
 
+    if debug:
+        print(f"\n  RESULT:")
+        print(f"    beta_hat = {result['beta_hat']:.6f}")
+        print(f"    se       = {result['se']:.6f}")
+        print(f"    95% CI   = [{result['ci_low']:.4f}, {result['ci_high']:.4f}]")
+        _print_header("EPDS END")
+
+    return result
 
 # ============================================================
 # registry -- mirrors DGP_REGISTRY pattern
