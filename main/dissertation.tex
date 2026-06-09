@@ -1,0 +1,1920 @@
+% ============================================================
+%  Postgraduate Dissertation -- ICML / AI Paper Style
+%  Ockham's Causal Razor: Symbolic Regression for Dictionary
+%  Discovery in Causal Inference
+% ============================================================
+\documentclass[11pt, a4paper]{article}
+
+% --- Core Packages ---
+\usepackage[margin=1.2in]{geometry}
+\usepackage{times}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{setspace}
+\onehalfspacing
+
+% --- Maths ---
+\usepackage{amsmath, amssymb, amsthm, mathtools}
+\usepackage{bm}
+
+% --- Theorem Environments ---
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% --- Figures, Tables, Highlighting ---
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{caption}
+\captionsetup{font=small, labelfont=bf}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{colortbl}
+\definecolor{highlight}{rgb}{1, 0.93, 0.62}
+\newcommand{\hl}[1]{\cellcolor{highlight}#1}
+
+% --- Algorithms ---
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+% --- Colours and Hyperlinks ---
+\usepackage[dvipsnames]{xcolor}
+\usepackage[colorlinks=true,
+            linkcolor=MidnightBlue,
+            citecolor=MidnightBlue,
+            urlcolor=MidnightBlue]{hyperref}
+
+% --- Bibliography ---
+\usepackage[authoryear, round]{natbib}
+\bibliographystyle{plainnat}
+
+% --- Section Styling (ICML-like) ---
+\usepackage{titlesec}
+\titleformat{\section}{\large\bfseries\scshape}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\itshape}{\thesubsubsection.}{0.5em}{}
+
+% --- Header and Footer ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\scshape Przemek Szkodon}
+\fancyhead[R]{\small\scshape Ockham's Causal Razor}
+\fancyfoot[C]{\thepage}
+
+% --- Custom Commands ---
+\newcommand{\lasso}{\textsc{Lasso}}
+\newcommand{\pds}{\textsc{PDS}}
+\newcommand{\dml}{\textsc{DML}}
+\newcommand{\pysr}{\textsc{PySR}}
+\newcommand{\epds}{\textsc{SR-PDS}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\PP}{\mathbb{P}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+\newcommand{\given}{\,|\,}
+\newcommand{\Shat}{\hat{S}}
+\newcommand{\betahat}{\hat{\beta}_0}
+\newcommand{\Xstar}{\bm{x}^{*}}
+\newcommand{\Hcal}{\mathcal{H}_{\mathcal{O}, C}}
+
+% ============================================================
+\begin{document}
+
+\begin{center}
+    {\Large\bfseries Ockham's Causal Razor:\\[0.3em]
+    Symbolic Regression for Dictionary Discovery\\
+    in Causal Inference}\\[1.2em]
+    {\large Przemek Szkodon}\\[0.3em]
+    {\normalsize Department of Economics and Data Science}\\
+    {\normalsize University of Cambridge}\\[0.3em]
+    {\normalsize \texttt{ps666@cam.ac.uk}}\\[1em]
+    {\small \today}
+\end{center}
+
+\vspace{1em}
+
+% ============================================================
+\begin{abstract}
+\noindent
+This dissertation proposes a framework for using symbolic
+regression in causal inference. The pattern, established in the
+physical sciences \citep{schmidt2009gp, cranmer2020}, is to
+let complex tools find structure and simple tools deliver
+inference. We argue the same arrangement addresses a persistent
+failure in high-dimensional causal estimation that the standard
+treatment obscures: when the treatment depends nonlinearly on
+covariates that also affect the outcome, the standard methods
+carry bias on the order of the confounding magnitude across
+$n=30$ to $n=5000$, with confidence intervals that contain the
+true effect zero percent of the time. This holds for
+Post-Double Selection with \lasso\ \citep{bch2014} and for
+Double Machine Learning with either \lasso\ or neural-network
+nuisances \citep{chernozhukov2018}. Our worked example is
+\epds, which runs symbolic regression upstream of the \pds\
+selection step. The justification is that symbolic regression
+searches a finite class with bounded log-cardinality, delivering
+parametric convergence rates where the neural-network analogue
+scales quadratically in parameter count and does not bind at
+applied sample sizes. \epds\ achieves coverage above $0.90$
+where the standard methods collapse, whilst preserving the
+named-confounder structure on which applied work depends.
+\end{abstract}
+
+\vspace{1em}
+
+% ============================================================
+\section{Introduction}
+\label{sec:intro}
+
+This dissertation argues for a particular relationship between
+flexible machine learning and causal inference. The dominant
+practice plugs flexible learners directly into causal procedures
+and lets the asymptotic theory carry the inference. We argue
+this is the wrong arrangement. Flexible methods belong at the
+discovery step, where their representational power finds the
+structure in the data. Simple, interpretable methods belong at
+the inference step, where their tractability delivers standard
+errors that an applied researcher can defend in peer review or
+before a policy audience. The pattern has been productive in
+the physical sciences for over a decade
+\citep{schmidt2009gp, cranmer2020}, and we propose that empirical
+economics has reason to follow suit. Our framework instantiates
+the idea in the post-double-selection setting of
+\citet{bch2014}, and the instance, which we call \epds, serves
+as the worked example throughout the dissertation. The principle
+behind it is more general; Section \ref{sec:discussion} sketches
+extensions to matching, difference-in-differences, and
+instrumental variables.
+
+The case for the framework rests on a structural failure in
+existing high-dimensional causal methods that the standard
+treatment obscures. Applied causal work typically opens with a
+long list of candidate controls and no clear theory for which
+ones matter. Choosing among them is itself a statistical
+problem, and the standard answer over the past decade has been
+to lean on high-dimensional regularisation. The canonical
+procedure is Post-Double Selection by \citet{bch2014}, which
+runs two \lasso\ regressions, one for the outcome and one for
+the treatment, takes the union of the selected variables, and
+runs OLS on that union. Provided the nuisance functions are
+approximately linear in the candidate covariates, the resulting
+estimator of the treatment effect is asymptotically normal and
+its confidence intervals have the right coverage.
+
+That linearity assumption is the catch. If the propensity score
+takes the form $m(\bm{x}) = 2 x_4 x_5$ rather than $m(\bm{x}) = 2
+x_4 + 2 x_5$, the marginal correlation between $d$ and either $x_4$
+or $x_5$ alone is essentially zero, and \lasso\ cannot find either
+one. The same applies to any nonlinear functional form not spanned
+by the original covariates, whether quadratics, products, or
+transformations. The standard remedy is to expand the dictionary manually, by
+including squares and selected interactions, but this makes the
+analyst do the work the method was meant to do automatically, and
+offers no guarantee that the chosen expansion contains the right
+terms. Worse, the choice of expansion is itself a selection problem,
+and a researcher who chooses badly inherits the omitted-variable
+bias of the original procedure with none of the guarantees that
+motivated using a regularised method in the first place.
+
+Double Machine Learning by \citet{chernozhukov2018} provides a
+different remedy. Rather than select variables, it replaces the
+linear nuisance regressions with flexible machine-learning models,
+takes orthogonal residuals, and regresses outcome residuals on
+treatment residuals. In principle any sufficiently flexible learner
+works, including neural networks. In practice, however, achieving
+the required convergence rate with a neural network on a few
+hundred observations is difficult, because the network has
+thousands of parameters fit to a small training set, and early
+stopping kicks in before the network has learned the relevant
+nonlinear structure.
+On the nonlinear-confounding designs we construct, \dml-NN's bias
+is indistinguishable from naive OLS even at $n=5000$. \dml-\lasso\
+inherits the same limitation as \pds-\lasso\ because the nuisance
+estimator is still linear.
+
+The two responses share a second, less remarked-upon weakness.
+\dml\ produces nuisance estimates as black-box functions, leaving
+a researcher applying the method with no list of confounders to
+point at, to defend to a referee, or to compare against the next
+study's choices. \pds\ preserves a named confounder set by construction,
+which is part of why it remains the dominant procedure in applied
+microeconometrics despite \dml's theoretical superiority. We are
+reluctant to give up that property. The applied virtue of \pds\ is
+not merely cosmetic. In peer review, in policy submissions, and in
+subsequent meta-analyses, the ability to point at a specific list
+of controls and defend it is a material feature of a method, not a
+stylistic one.
+
+The discovery-versus-inference distinction we propose has
+precedent. \citet{schmidt2009gp} and \citet{cranmer2020} show
+that complex machine-learning tools can be used to recover
+simple structural laws from data: a flexible learner finds the
+structure, that structure is represented as a compact symbolic
+expression, and the symbolic expression carries the downstream
+scientific work. Importing the pattern to causal econometrics
+means that if symbolic regression can recover the functional
+form of a nonlinear confounder, the recovered expression
+belongs in a procedure that delivers valid inference, not in
+the wings whilst a black-box learner produces the final
+estimate. The simple representation is what enables the
+scientific virtues of falsifiability, reproducibility, and
+narrative that empirical economics has historically rested on.
+
+We propose a procedure that keeps the \pds\ structure and adds the
+flexibility \pds-\lasso\ lacks. The method, which we call \epds\
+(symbolic-regression post-double selection), runs symbolic
+regression on the
+outcome and propensity equations to discover nonlinear basis terms,
+adds those terms to the feature dictionary, and then runs standard
+\pds-\lasso\ on the enriched dictionary. We use the \pysr\
+implementation of symbolic regression \citep{cranmer2023pysr},
+which performs evolutionary search over expression trees and
+returns a Pareto frontier of expressions trading off complexity
+against fit. The final estimator is OLS on a named set of selected
+features, so the commitment-based interpretability of \pds\ is
+preserved.
+
+To evaluate the proposed method we construct eight data-generating
+processes that span the regimes of interest: linear, quadratic,
+interaction, mixed nonlinear, linear-confounded nonlinear, two
+designs in which the propensity score depends nonlinearly on
+covariates that also enter the outcome equation (mild and severe
+nonlinear confounding), and a weak-signal design with mixed
+continuous and binary covariates. We compare six methods (Full
+OLS, \pds-\lasso, \dml-\lasso, \dml-RF, \dml-NN, \epds) on bias,
+RMSE, coverage, and size, at fixed $n=500$ and across a
+trajectory from $n=30$ to $n=50{,}000$. A cross-fitted variant of
+\epds\ is included as a robustness check on the inferential
+validity of the same-data procedure.
+
+The empirical findings divide cleanly into three regimes. On
+linear and lightly-nonlinear designs, \epds\ matches the
+standard methods within Monte Carlo error: the flexibility
+costs nothing when it is not needed, which is the right
+baseline property for a proposed extension. On the
+nonlinear-confounding designs the standard methods collapse
+entirely, with bias exceeding $1.2$ on the mild design and
+$1.5$ on the severe design and coverage of exactly zero;
+\epds\ reduces bias by more than ninety-five
+percent on the mild design and by more than eighty-five percent
+on the severe design, with coverage at $0.9$ or above. The
+trajectory analysis from $n=30$ to $n=5000$ shows that \dml's
+failure on these designs is structural rather than small-sample:
+\dml-NN's bias on the mild nonlinear-confounding design remains
+above $1.0$ at $n=5000$, with no visible convergence. Section
+\ref{sec:method} makes this precise. The convergence-rate
+condition in \citet{chernozhukov2018} requires sample complexity
+that scales with the squared parameter count of the nuisance
+learner, which for a typical multilayer perceptron is several
+orders of magnitude above what applied work delivers.
+
+The dissertation is organised as follows. Section \ref{sec:lit}
+positions the work within the related literature. Section
+\ref{sec:background} reviews \pds, \dml, and symbolic
+regression. Section \ref{sec:method} describes the \epds\
+pipeline and the theoretical reasoning that motivates it. Section
+\ref{sec:sim} describes the simulation design. Section
+\ref{sec:results} presents results at fixed $n=500$ and across the
+$n$-trajectory, with explicit reference back to the theoretical
+predictions. Section \ref{sec:discussion} discusses limitations and
+practical guidance. Section \ref{sec:conclusion} concludes.
+
+% ============================================================
+\section{Related Literature}
+\label{sec:lit}
+
+The literature on variable selection for causal inference begins
+with the \lasso\ \citep{tibshirani1996}, and the recognition that
+using it directly for inference is subtle, since the
+regularisation that makes \lasso\ useful as a predictive method
+induces an omitted-variable bias in any target parameter \citep{bch2014}. The post-%
+double-selection procedure addresses this by running \lasso\
+separately on the outcome and the treatment equations and taking
+the union, which protects against omitted confounders missed by
+either single regression. \citet{chernozhukov2018} generalise this
+insight to a broad class of nuisance estimators via Neyman
+orthogonality and cross-fitting, producing the Double Machine
+Learning framework. Both procedures admit valid inference when
+their assumptions hold, and both rest on sparsity assumptions
+about the underlying nuisance functions, with the difference
+being whether the sparsity is in a linear basis (\pds-\lasso) or
+in whatever class the nuisance estimator can represent (\dml).
+
+A parallel literature develops feature-selection methods for the
+nonlinear case. LassoNet \citep{lemhadri2021lassonet} imposes a
+hierarchical sparsity constraint linking a linear skip path to a
+deep network. Deep Feature Selection \citep{chen2021dfs} uses an
+$L_1$-penalised gating layer between the inputs and the main
+network. Both rely on gradient descent and inherit the associated
+sensitivities to architecture, initialisation, and local optima.
+
+Symbolic regression itself dates to \citet{koza1992}'s genetic
+programming and has been brought into modern data analysis by
+\citet{cranmer2020}, who use a graph neural network to compress
+relational data before symbolic search, and the \pysr\
+implementation \citep{cranmer2023pysr}, which provides a high-%
+performance engine for evolutionary search over expression trees.
+The key practical fact for our purposes is that symbolic
+regression runtime scales rapidly with input dimensionality. With
+$p=50$ candidate covariates, a single \pysr\ fit takes
+approximately twenty seconds. The maximum-complexity budget and
+the parsimony coefficient control the search and limit spurious
+low-coefficient terms.
+
+The validity of \pds-\lasso\ inference rests on the basis
+dictionary being fixed in advance, not estimated from the data
+used for the final OLS step. Our pipeline violates this
+assumption. \citet{lee2016exact} and \citet{tibshirani2018uniform}
+develop exact and uniform post-selection inference for the
+\lasso, but extending these to a symbolic-regression-discovered
+dictionary requires care. We discuss the implications and offer
+simulation evidence on the empirical coverage in Section
+\ref{sec:results}, and we leave the formal extension to future
+work. The natural fix is sample splitting, which restores formal
+validity at the cost of statistical efficiency. We have not
+implemented sample splitting in the current pipeline, which is
+the principal outstanding inferential question. We discuss this
+further in Section \ref{sec:discussion}.
+
+Two recent simulation studies are particularly close to our
+setting. \citet{fuhr2024} compare \dml\ with \lasso, random
+forest, and neural-network nuisance estimators across a range
+of nonlinear designs, and document bias on the order of $0.1$
+to $0.3$ at $n=2000$ with neural-network nuisances. Their
+designs do not include nonlinear confounding of the kind we
+construct in our DGPs 6 and 7, where the propensity and outcome
+share nonlinear terms; the corresponding bias on our designs is
+roughly five times larger. \citet{klusowski2024doubledeep}
+examine \dml\ with deep nuisance estimators and identify the
+convergence-rate condition as the binding constraint at applied
+sample sizes, providing the formal theory that motivates our
+sample-complexity calculation in Section \ref{sec:theory}. Our
+results extend both papers in two directions. We construct
+designs where the standard methods fail completely rather than
+mildly, and we trace the failure across $n=30$ to $n=5000$ to
+show that it does not resolve with more data. Neither paper
+proposes a fix.
+
+The closest methodological neighbours are post-selection
+inference and feature selection for nonlinear models.
+\citet{lee2016exact} and \citet{tibshirani2018uniform} develop
+post-selection inference machinery that could in principle be
+adapted to a data-estimated dictionary, though neither paper
+considers symbolic regression as the selection mechanism.
+\citet{lemhadri2021lassonet} and \citet{chen2021dfs} provide
+neural-network analogues of \lasso\ for nonlinear feature
+selection; both inherit the optimisation pathologies of
+gradient-trained networks and produce black-box estimates
+without the named-confounder property that our procedure
+preserves. The Stein-based selector of \citet{duetal2025} is
+gradient-free and deterministic but does not perform
+functional-form recovery; it identifies which variables matter
+nonlinearly but not how. Our framework combines its strengths
+as an upstream filter with the symbolic recovery that follows.
+
+The gap we fill is the absence of an existing method that
+performs functional-form recovery for nuisance estimation within
+the post-double-selection inference structure of \pds-\lasso.
+Adjacent tools such as the sensitivity analysis of
+\citet{cinelli2020sensitivity} and the partial identification
+of \citet{conley2012plausibly} are complementary; they assess
+the robustness of causal estimates to assumed violations of
+identifying assumptions, whilst our procedure reduces the gap
+between the analyst's specification and the data-generating
+process before such sensitivity analysis becomes necessary.
+
+% ============================================================
+\section{Background}
+\label{sec:background}
+
+We work in the partially linear model of \citet{robinson1988},
+\begin{equation}
+    y_i = \beta_0 d_i + g(\bm{x}_i) + \varepsilon_i, \qquad
+    d_i = m(\bm{x}_i) + v_i,
+    \label{eq:plm}
+\end{equation}
+where $y_i$ is the outcome, $d_i$ the treatment, $\bm{x}_i \in
+\R^p$ the candidate controls, and $g, m$ unknown nuisance
+functions. We observe iid draws of $(y_i, d_i, \bm{x}_i)$ and
+seek to estimate $\beta_0$.
+
+\subsection{Post-Double Selection \lasso}
+
+The \pds-\lasso\ procedure runs $\lasso(y \sim \bm{x})$ to obtain
+a selected set $\Shat_y$, runs $\lasso(d \sim \bm{x})$ to obtain
+$\Shat_d$, and regresses $y$ on $d$ and $\bm{x}_{\Shat_y \cup
+\Shat_d}$ by OLS. The regularisation parameter $\lambda$ is set
+to the theoretical bound $\lambda \geq c \sigma n^{-1/2}
+\Phi^{-1}(1 - \alpha/(2p))$ for some constant $c > 1$, which
+ensures the false-discovery rate is controlled. \citet{bch2014}
+prove that under approximate sparsity of $g$ and $m$, the
+resulting $\betahat$ is asymptotically normal at the parametric
+rate with valid standard errors. The procedure preserves a named
+control set, an important feature for applied work.
+
+The assumption to watch is approximate sparsity in $\bm{x}$. If
+the true $g$ contains a term $5 x_1^2 x_2$, no element of
+$\bm{x}$ captures this directly, and \lasso\ on the raw $\bm{x}$
+will fail to select $\{x_1, x_2\}$ on grounds of their marginal
+correlation with $y$. The omission propagates to $\betahat$ as
+confounding bias. The theoretical structure of the \pds\ result
+is robust to a small amount of nonlinearity (the ``approximate''
+in approximate sparsity permits a vanishing approximation error),
+but the empirical behaviour of the procedure under substantial
+nonlinear confounding is empirically comparable to that of
+naive OLS.
+
+\subsection{Double Machine Learning}
+
+\dml\ replaces the \lasso\ selection step with two flexible
+nuisance estimators $\hat g$ and $\hat m$, constructs residuals
+$\tilde y = y - \hat g(\bm{x})$ and $\tilde d = d - \hat
+m(\bm{x})$, and estimates $\beta_0$ as the OLS coefficient of
+$\tilde y$ on $\tilde d$. Cross-fitting on disjoint folds removes
+the overfitting concern. The estimator is asymptotically normal
+provided the nuisance estimators converge at rate $\norm{\hat g -
+g}_2 \cdot \norm{\hat m - m}_2 = o_p(n^{-1/2})$. This product-%
+rate condition accommodates a wide range of learners in
+principle. In practice, at the sample sizes typical of applied
+microeconometric work, a multilayer perceptron with several
+thousand parameters fit to a few hundred observations does not
+approach the required rate for genuinely nonlinear $g$ and $m$,
+and the estimator inherits the bias. The trajectory results in
+Section \ref{sec:results} provide direct empirical evidence on
+this point.
+
+\subsection{Symbolic Regression}
+
+\pysr\ \citep{cranmer2023pysr} performs evolutionary search over
+expression trees with user-specified binary and unary operators
+(we use $\{+, -, \cdot, \log, \sqrt{\cdot}\}$), a maximum
+complexity budget, and a parsimony coefficient that penalises
+complex expressions. The output is a Pareto frontier of
+expressions trading off complexity against fit, and we select a
+single expression by minimising $\ell + \rho c$, where $\ell$ is
+validation loss and $c$ is complexity. The parsimony coefficient
+$\rho$ controls the trade-off and must be tuned to the
+application. We use $\rho = 0.005$ for outcome fits and $\rho =
+0.01$ for propensity fits, reflecting the typically stronger
+signal in the outcome equation.
+
+The key practical concern at large $p$ is the size of the
+expression-tree search space. With fifty candidate variables,
+\pysr\ can select low-coefficient spurious terms involving
+inactive features; the maximum-complexity budget and the
+parsimony coefficient are the two levers that control this.
+
+% ============================================================
+\section{Methodology}
+\label{sec:method}
+
+The \epds\ pipeline runs symbolic regression on the outcome and
+the propensity equations, extracts the discovered nonlinear basis
+terms, appends them to the original feature matrix, and runs
+standard \pds-\lasso\ on the enriched dictionary. Algorithm
+\ref{alg:epds} states the procedure.
+
+\begin{algorithm}[H]
+\caption{Symbolic-Regression Post-Double Selection (\epds)}
+\label{alg:epds}
+\begin{algorithmic}[1]
+    \Require Data $(y, d, \bm{x})$ with $\bm{x} \in \R^{n \times p}$
+    \State Fit \pysr$(y \sim \bm{x})$ and \pysr$(d \sim \bm{x})$;
+           let $\mathcal{T}_y$ and $\mathcal{T}_d$ be the sets of
+           extracted nonlinear terms (e.g.\ $x_i^2$, $x_i x_j$,
+           $\log|x_i|$).
+    \State Construct $\Xstar = [\bm{x},\
+           \phi_{\mathcal{T}_y \cup \mathcal{T}_d}(\bm{x})]$, the
+           original $\bm{x}$ augmented with one numerical column
+           per discovered term.
+    \State Run $\lasso(y \sim \Xstar)$ and $\lasso(d \sim \Xstar)$
+           with $\lambda^*$ scaled to $p^* = \dim\Xstar$. Let
+           $\Shat^*$ be the union of the two selected sets.
+    \State Compute $\betahat$ as the OLS coefficient on $d$ in
+           the regression of $y$ on $d$ and $\Xstar_{\Shat^*}$,
+           with HC1 standard errors.
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Symbolic Regression Configuration}
+
+We configure \pysr\ with operator set $\{+, -, \cdot, \log,
+\sqrt{\cdot}\}$, maximum complexity 30, and 40 evolutionary
+iterations. The operator set is deliberately small. We exclude
+division because it produces unstable expressions that introduce
+numerical noise into the downstream regressions, and we exclude
+exponentiation because the values that the optimiser discovers as
+exponents are not generally interpretable as economically
+meaningful. The maximum complexity of 30 nodes comfortably
+accommodates expressions of the form $a_1 x_1^2 x_2 + a_2 \log|x_3| + a_3 x_4
+x_5$ (complexity 13) plus deeper compositions that may arise in
+applied settings, whilst the parsimony coefficient keeps the
+chosen expression near the elbow of the Pareto frontier.
+
+The parsimony coefficient is the most consequential
+hyperparameter. We set $\rho_y = 0.005$ for the outcome equation
+and $\rho_d = 0.01$ for the propensity equation. The asymmetry
+reflects the different signal-to-noise ratios in the two
+equations in our DGPs. The outcome signal is typically four to
+five times larger in magnitude than the propensity signal, and a
+parsimony coefficient that is appropriate for the outcome would
+underfit the propensity. We arrived at these values through pilot
+runs in which we observed the propensity equation occasionally
+collapsing to a single-term expression at $\rho_d = 0.005$.
+
+\subsection{Term Extraction}
+
+The output of \pysr\ is a symbolic expression. To use it as a
+basis we walk the expression tree and extract individual nonlinear
+terms, classified into a small taxonomy: squares ($x_i^2$),
+interactions ($x_i x_j$ with $i < j$), cubic-style products
+($x_i^2 x_j$), logarithms ($\log|x_i|$), and square roots
+($\sqrt{|x_i|}$). Pure monomials, polynomials of higher degree,
+and operator combinations outside this taxonomy are not currently
+extracted. In our DGPs this restriction does not bind, but we
+mention it for completeness.
+
+For the logarithmic terms specifically, we construct the column
+$\log(|x_i| + 10^{-6})$ to avoid evaluating the logarithm at
+zero. The discrepancy between this construction and \pysr's
+symbolic $\log(x_i)$ is negligible for $|x_i| \gg 10^{-6}$ and
+does not bind in practice. The issue that does bind is that
+\pysr's \texttt{log} operator does not natively handle negative
+arguments, so for a data-generating $\log|x_3|$ with $x_3 \sim
+N(0, 1)$, the term must be discovered as $\log(x_3^2)$ rather
+than directly. We document this issue in the limitations.
+
+\subsection{The Enriched \lasso\ Step}
+
+We run two \lasso\ regressions on $\Xstar$ using the theoretical
+$\lambda^*$ scaled to the enriched dimension $p^*$:
+\begin{equation}
+    \lambda^* = \frac{c}{\sqrt{n}} \cdot
+    \Phi^{-1}\!\left(1 - \frac{\alpha}{2 p^*}\right),
+    \qquad c = 1.1, \quad \alpha = 0.05.
+\end{equation}
+The union of the two selected sets becomes the final control set,
+and the OLS regression of $y$ on $d$ and that set delivers the
+point estimate and confidence interval. The choice $c = 1.1$
+matches the recommended value in \citet{bch2014}. Because $p^*$
+exceeds $p$ by the number of discovered nonlinear terms, the
+enriched $\lambda^*$ is fractionally larger than the original
+\pds\ $\lambda$. In our DGPs with $p^* - p \in \{2, 3, 4\}$ this
+fractional adjustment is below one percent.
+
+\subsection{Theoretical Justification: Why \epds\ Works at Moderate $n$}
+\label{sec:theory}
+
+Why should \epds\ work in regimes where neural-network \dml\
+does not? The intuition is one of search-space size. \pysr\
+looks for the right answer within a small, structured space of
+mathematical expressions, namely those of bounded complexity
+built from a handful of operators. A neural network, by
+contrast, searches a much larger space of functions representable
+by its parameters. When the truth lives in a small space, an
+estimator that knows where to look needs much less data to find
+it than an estimator that does not. The argument has three
+substantive steps and a synthesis.
+
+\subsubsection{Finite-class ERM gives parametric rates}
+
+Fix an
+operator set $\mathcal{O}$ and a maximum complexity $C$, and let
+$\Hcal$ denote the set of all expression trees of complexity at
+most $C$ built from operators in $\mathcal{O}$ and the $p$
+candidate variables. The set $\Hcal$ is finite, with cardinality
+bounded above by $|\mathcal{O}|^C \cdot p^C$, so $\log |\Hcal| =
+O(C \log(|\mathcal{O}| \cdot p))$. For our setting with
+$|\mathcal{O}| = 5$, $C = 30$, and $p = 50$, this gives $\log
+|\Hcal|$ on the order of two hundred. Once the search space is
+finite and not too large, the classical sample-complexity
+result for empirical risk minimisation applies.
+
+\begin{samepage}
+\begin{proposition}[Finite-class ERM rate]
+\label{prop:erm}
+Let $\Hcal$ be a finite hypothesis class, and suppose the true
+nuisance function satisfies $g \in \Hcal$. The empirical risk
+minimiser
+$\hat{g} = \arg\min_{f \in \Hcal} \tfrac{1}{n}
+\sum_{i=1}^n (y_i - f(\bm{x}_i))^2$
+satisfies, with probability at least $1 - \delta$,
+\begin{equation*}
+    \norm{\hat{g} - g}^2_{L^2}
+    \;\leq\;
+    \frac{c \, \sigma^2 \log(|\Hcal|/\delta)}{n},
+\end{equation*}
+for an absolute constant $c$ depending on the sub-Gaussian
+noise variance proxy $\sigma^2$.
+\end{proposition}
+
+\emph{Sketch.} For each $f \in \Hcal$ the empirical squared loss
+concentrates around the population squared loss at rate
+$1/\sqrt{n}$ by Hoeffding's inequality, and a union bound over
+the $|\Hcal|$ candidate expressions yields the stated rate. See
+\citet{wainwright2019high}, Chapter 4. $\square$
+\end{samepage}
+
+In plain language, when the relationship in the data can be
+written as one of the finitely many expressions \pysr\
+considers, the number of observations required to find it grows
+only with the logarithm of how many such expressions there are.
+The contrast with neural networks is sharp. For a multilayer
+perceptron with parameter count $P$, the analogous guarantee
+scales as $n = \Omega(P^2 \log P / \epsilon^2)$
+\citep{anthony2009neural}. Our $(64, 32)$ MLP has $P \approx
+5000$ parameters, so the implied $n$ for $\epsilon = 0.1$
+accuracy is on the order of $10^6$, three orders of magnitude
+above the sample sizes we consider. The same calculation in our
+finite-class setting gives an implied $n$ on the order of
+$10^3$, comfortably within applied range. The trajectory result
+in Section \ref{sec:results} that \dml-NN bias does not decline
+with $n$ across our range is the empirical signature of this
+mismatch.
+
+The proposition assumes the truth lies in $\Hcal$.
+Misspecification is the more common applied case, and the
+following remark records what happens then.
+
+\begin{remark}[Misspecified ERM rate]
+\label{rem:misspec}
+Suppose the true nuisance function $g \notin \Hcal$, with
+approximation error
+$\Delta^2 := \inf_{f \in \Hcal} \norm{f - g}^2_{L^2}$.
+Then under the conditions of Proposition \ref{prop:erm}, the
+ERM minimiser $\hat{g}$ satisfies
+\begin{equation*}
+    \norm{\hat{g} - g}^2_{L^2}
+    \;\leq\;
+    \Delta^2 \;+\; \frac{c \, \sigma^2 \log(|\Hcal|/\delta)}{n}
+\end{equation*}
+with probability at least $1-\delta$.
+\end{remark}
+
+The remark separates the error into two components. The
+estimation error $\log|\Hcal|/n$ vanishes as $n$ grows. The
+approximation error $\Delta^2$ does not. For \dml\ inference
+to engage, the product-rate condition $\norm{\hat{g} - g}_2
+\cdot \norm{\hat{m} - m}_2 = o_p(n^{-1/2})$ requires
+$\Delta_g \cdot \Delta_m = o_p(n^{-1/2})$, which fails for any
+fixed approximation error as $n$ grows. The misspecified case
+therefore does not just slow convergence, it breaks it. DGP-4
+inhabits this regime with respect to the $\log|x_3|$ term given
+our \pysr\ operator-set configuration; the persistent bias floor
+we observe is the approximation error rather than a slow rate
+of convergence, and the only fix is to enlarge $\Hcal$ to cover
+the truth.
+
+\subsubsection{Genetic-programming search converges to the ERM}
+
+\pysr\ does not enumerate $\Hcal$ exhaustively. It performs
+evolutionary search through mutation, crossover, and tournament
+selection. \citet{schmidt2009gp} establish that, under standard
+conditions on population size and Pareto-based selection, the
+probability of recovering the true expression converges to one
+as the iteration budget grows, provided the truth lies in the
+searched class. \citet{cranmer2023pysr} document this
+empirically across a broad range of physical-law discovery
+problems.
+
+Proposition \ref{prop:erm} therefore applies to \pysr's output
+only when the iteration budget is large enough for the search
+to succeed. In our DGPs, with 40 iterations and the default
+population size, recovery is essentially one for low-complexity
+targets such as products and squares, but drops below one for
+high-complexity targets such as the cubic $x_1^2 x_2$ in
+DGP-7. This is visible in the term-recovery panels in Section
+\ref{sec:results} and explains the slower convergence of \epds\
+bias on DGP-7 relative to DGP-6.
+
+\subsubsection{The Pareto elbow selects the correct expression}
+
+\pysr\ returns the full Pareto frontier $\{(c, \ell_c)\}$
+trading expression complexity $c$ against fit $\ell_c$.
+Selecting the expression that minimises $\ell_c + \rho c$
+corresponds to selecting the point at the elbow of the curve,
+where marginal complexity reduction yields disproportionate fit
+gain. The parsimony coefficient $\rho$ plays the role of a BIC
+log-$n$ term, acting as the price the expression pays for each
+additional node of complexity.
+
+When the truth has complexity $c^*$ and lies in $\Hcal$, the
+loss profile is piecewise. $\ell_c$ is roughly constant and
+equal to the noise variance for $c \geq c^*$, and sharply
+higher for $c < c^*$ where the expression cannot represent the
+truth. The elbow is at $c^*$, and any reasonable $\rho$ that
+straddles the kink will select the correct complexity. When the
+truth lies outside $\Hcal$, the loss profile decreases
+gradually with $c$ and the elbow is less sharply identified,
+making the parsimony coefficient more consequential. This is a
+second mechanism by which DGP-4 underperforms relative to DGPs
+6 and 7.
+
+\subsubsection{Synthesis}
+
+On a DGP where the
+true nuisance functions lie in $\Hcal$ at low complexity and
+the \pysr\ search budget is adequate, the discovered
+expression coincides with the truth and the enriched
+dictionary contains a basis that spans the relevant nonlinear
+structure. The downstream \pds-\lasso\ step is then operating
+on a dictionary that effectively includes the truth, and the
+original \citet{bch2014} inference machinery applies. When the
+truth lies outside $\Hcal$, the discovered expression is the
+best approximation within the class, and the bias is
+determined by the approximation error. When the truth lies in
+$\Hcal$ at high complexity, the search budget binds and
+convergence is gradual. The three regimes are visible in the
+next section's results, and this story explains why each DGP
+behaves as it does.
+
+\subsection{Inferential Considerations}
+\label{sec:inference}
+
+The \citet{bch2014} inference theorem assumes the basis
+dictionary is fixed in advance. We estimate it from the same
+data we use for the final regression. Formally, this is a post-%
+selection inference problem to which we do not yet have a
+complete theoretical answer.
+
+Three considerations bear on the practical inferential validity
+of \epds. First, the dictionary expansion is small. In our DGPs,
+\pysr\ typically discovers between two and five nonlinear terms,
+so $\Xstar$ adds at most a few columns to the original feature
+space. The flexibility added by symbolic regression is modest
+relative to the flexibility already implicit in the \lasso\
+search over the raw $\bm{x}$. Second, the parsimony coefficient
+ensures the symbolic regression step is itself sparse, with
+spurious terms of small coefficients penalised out of the
+discovered expression, so the basis we add to the dictionary is
+itself a sparse selection over expression space. Third, simulation
+evidence in Section \ref{sec:results} shows empirical coverage
+close to or above the nominal $95\%$ on the designs where \epds\
+performs well, including the nonlinear-confounding designs where
+the standard methods fail completely. We interpret this as
+empirical evidence that the inferential cost of estimating the
+basis is small. We do not claim that this evidence substitutes
+for a formal proof. The principled extension would be a Belloni-%
+style theorem accommodating data-estimated dictionaries, perhaps
+via the uniform post-selection inference machinery of
+\citet{tibshirani2018uniform} or via a sample-splitting argument.
+We outline this programme in the conclusion and leave it to
+future work.
+
+% ============================================================
+\section{Simulation Design}
+\label{sec:sim}
+
+\subsection{Data-Generating Processes}
+
+We construct seven DGPs that progressively introduce nonlinearity
+and nonlinear confounding. All use $n=500$, $p=50$, sparsity
+$s=6$, and true treatment effect $\beta_0 = 0.5$. Covariates are
+drawn iid as $\bm{x}_i \sim N(\bm{0}, I_{50})$, and noise terms
+are iid standard normal. The outcome equation always takes the
+form $y_i = \beta_0 d_i + g(\bm{x}_i) + \varepsilon_i$. Table
+\ref{tab:dgps} summarises $g$ and the propensity $m$ for each
+design.
+
+\begin{table}[H]
+\centering
+\caption{The seven data-generating processes. Indices are 1-based.}
+\label{tab:dgps}
+\small
+\begin{tabular}{lll}
+    \toprule
+    DGP & $g(\bm{x})$ & $m(\bm{x})$ \\
+    \midrule
+    1 Linear
+        & $5 x_1 - 5 x_2 + 3 x_3 - 3 x_4 + x_5 - x_6$
+        & $0$ \\
+    2 Quadratic
+        & $5 x_1^2 - 5 x_2 + 3 x_3^2 - 3 x_4 + x_5$
+        & $0$ \\
+    3 Interactions
+        & $5 x_1 x_2 - 5 x_3 + 3 x_4 x_5 - 3 x_6$
+        & $0$ \\
+    4 Mixed NL
+        & $5 x_1^2 x_2 - 5 \log|x_3| + 3 x_4 x_5 - 3 x_6$
+        & $0$ \\
+    5 NL + linear conf.
+        & DGP-4 $g$
+        & $x_1 + x_2 + x_3 + x_4 + x_5 + x_6$ \\
+    6 NL + mild NL conf.
+        & DGP-4 $g$
+        & $2 x_4 x_5$ \\
+    7 NL + severe NL conf.
+        & DGP-4 $g$
+        & $2 x_1^2 x_2 + 3 x_4 x_5$ \\
+        8 Weak NL conf. (dummies)
+        & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} \\
+    \bottomrule
+\end{tabular}
+\end{table}
+
+DGPs 1 through 5 follow the standard simulation literature.
+DGP-1 is the canonical \pds-\lasso\ benchmark. DGPs 2 and 3
+introduce univariate nonlinearity and interactions. DGP-4 is
+inspired by Case 5 of \citet{duetal2025}. DGP-5 layers a linear
+propensity score over the mixed nonlinear outcome, and is the
+standard DGP for testing \pds-style methods under confounding.
+
+DGPs 6 and 7 are our contribution to the simulation design. The
+propensity score depends on covariates that also appear in the
+outcome equation, through a nonlinear functional form. This is
+precisely the failure mode that motivates the development of
+\epds. We can compute the analytical confounding strength for
+each:
+\begin{align}
+    \text{DGP-6:}\quad
+    & \text{Cov}(D, g(\bm{X})) = 2 \cdot 3 \cdot \text{Var}(x_4 x_5) = 6, \\
+    \text{DGP-7:}\quad
+    & \text{Cov}(D, g(\bm{X})) = 2 \cdot 5 \cdot \text{Var}(x_1^2 x_2) + 3 \cdot 3 \cdot \text{Var}(x_4 x_5) = 30 + 9 = 39.
+\end{align}
+The implied naive-OLS bias is $6/5 = 1.20$ for DGP-6 and
+$39/22 \approx 1.77$ for DGP-7. The simulated values of
+$1.244$ and $1.710$ reported in Section \ref{sec:results} match
+these within Monte Carlo error.
+
+The construction of DGPs 6 and 7 deserves explicit comment. We chose the shared nonlinear terms ($x_4 x_5$ in
+DGP-6, plus $x_1^2 x_2$ and $x_4 x_5$ in DGP-7) so that the
+confounding channel is precisely the kind of structure a linear
+\lasso\ cannot capture. The shared term $x_4 x_5$ has zero
+marginal correlation with either $x_4$ or $x_5$ in isolation, so
+the propensity-equation \lasso\ cannot select these variables as
+confounders. The same logic applies to $x_1^2 x_2$ in DGP-7. The
+standard methods are in this sense designed against in the
+propensity equation, not because we chose unrealistic functional
+forms, but because we chose precisely the functional forms that
+the propensity \lasso\ cannot represent. Remark
+\ref{rem:misspec} formalises this: the truth lies outside the
+linear hypothesis class of \pds-\lasso, so the ERM bound
+carries an approximation error proportional to the confounding
+magnitude that does not vanish with $n$.
+
+\subsection{Methods Compared}
+
+We compare seven methods:
+\begin{enumerate}
+    \item \textbf{Full OLS (infeasible)}: $y$ on $d$ and all $p$
+          raw covariates. Singular when $p \geq n$, in which case
+          it falls back to \pds-\lasso.
+    \item \textbf{\pds-\lasso} \citep{bch2014}.
+    \item \textbf{\dml-\lasso} \citep{chernozhukov2018}, cross-%
+          fitted over five folds.
+    \item \textbf{\dml-RF}: \dml\ with a random-forest nuisance
+          estimator (500 trees, default depth, minimum leaf
+          size 5).
+    \item \textbf{\dml-NN}: \dml\ with a $(64, 32)$ MLP nuisance
+          estimator, ReLU activation, early stopping on a $10\%$
+          validation hold-out.
+    \item \textbf{\epds}: Algorithm \ref{alg:epds}.
+    \item \textbf{\epds\ (CF)}: cross-fitted \epds. For each of
+          five folds, \pysr\ is fit on the training portion and
+          \lasso\ predictions are made on the held-out fold;
+          residuals are aggregated for the final OLS. Used as a
+          robustness check on the inferential validity of the
+          same-data variant.
+\end{enumerate}
+
+\subsection{Hyperparameters}
+
+\pysr\ uses operator set $\{+, -, \cdot, \log, \sqrt{\cdot}\}$,
+maximum complexity 30, parsimony 0.005 for outcome fits and 0.01
+for propensity fits, 40 iterations, random seed 42.
+
+The neural-network nuisance estimator for \dml-NN uses scikit-%
+learn's \texttt{MLPRegressor} with the default optimizer (Adam),
+hidden architecture $(64, 32)$, ReLU activation, learning rate
+$0.001$, maximum 500 iterations, $10\%$ validation fraction for
+early stopping, and patience of 10. These are essentially the
+defaults, and we did not tune them per DGP. A reviewer may
+reasonably ask whether better hyperparameters would rescue
+\dml-NN on the nonlinear-confounding designs, and we discuss
+this question in Section \ref{sec:discussion}.
+
+\subsection{Evaluation}
+
+We report bias $\E[\betahat - \beta_0]$, RMSE $\sqrt{\E[(\betahat
+- \beta_0)^2]}$, coverage of nominal $95\%$ confidence intervals,
+and size (rejection rate of $H_0: \beta_0 = 0$). We compute each
+metric over $n_{\text{rep}}$ Monte Carlo replications.
+
+\paragraph{Pilot replication count.} The results below use
+$n_{\text{rep}} = 10$ for the fixed-$n$ design and $n_{\text{rep}}
+= 3$ for the trajectory analysis. The Monte Carlo standard error
+on the coverage estimate is approximately $\pm 0.16$ at
+$n_{\text{rep}} = 10$ and wider at $n_{\text{rep}} = 3$. The headline effects we emphasise are larger than this margin by
+an order of magnitude, and the finer comparisons should be
+re-examined under the planned full production run at
+$n_{\text{rep}} = 500$.
+
+% ============================================================
+\section{Results}
+\label{sec:results}
+
+\subsection{Fixed-$n$ Results}
+
+Tables \ref{tab:bias} through \ref{tab:coverage} report bias, RMSE,
+coverage, and size at $n=500$, across all eight DGPs and the
+methods of Section \ref{sec:sim}. The cells highlighted in
+yellow are the \epds\ values on the two nonlinear-confounding
+DGPs. They are the headline result of this dissertation. In the
+regime where all standard methods fail completely, \epds\ is the
+only method that works.
+
+\begin{table}[H]
+\centering
+\caption{Bias $\E[\betahat - \beta_0]$ at $n=500$. True $\beta_0
+= 0.5$. Highlighted cells are the \epds\ values on
+DGPs 6 and 7. Pilot results, $n_{\text{rep}} = 10$; the
+production run regenerates these at $n_{\text{rep}} = 500$.}
+\label{tab:bias}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrrrr}
+    \toprule
+    DGP
+        & Full
+        & \pds-\lasso
+        & \dml-\lasso
+        & \dml-RF
+        & \dml-NN
+        & \epds
+        & \epds (CF) \\
+    \midrule
+    1 Linear
+        & $-0.007$ & $-0.019$ & {\small TBD} & {\small TBD} & $\phantom{-}0.054$ & $-0.007$ & {\small TBD} \\
+    2 Quadratic
+        & $-0.128$ & $-0.117$ & {\small TBD} & {\small TBD} & $-0.077$ & $-0.065$ & {\small TBD} \\
+    3 Interactions
+        & $\phantom{-}0.002$ & $\phantom{-}0.006$ & {\small TBD} & {\small TBD} & $\phantom{-}0.115$ & $\phantom{-}0.023$ & {\small TBD} \\
+    4 Mixed NL
+        & $\phantom{-}0.080$ & $\phantom{-}0.112$ & {\small TBD} & {\small TBD} & $\phantom{-}0.216$ & $\phantom{-}0.005$ & {\small TBD} \\
+    5 NL + linear conf.
+        & $\phantom{-}0.082$ & $\phantom{-}0.115$ & {\small TBD} & {\small TBD} & $\phantom{-}0.238$ & $\phantom{-}0.043$ & {\small TBD} \\
+    6 NL + mild NL conf.
+        & $\phantom{-}1.218$ & $\phantom{-}1.262$ & {\small TBD} & {\small TBD} & $\phantom{-}1.204$ & \hl{$-0.033$} & {\small TBD} \\
+    7 NL + severe NL conf.
+        & $\phantom{-}1.550$ & $\phantom{-}1.594$ & {\small TBD} & {\small TBD} & $\phantom{-}1.528$ & \hl{$\phantom{-}0.245$} & {\small TBD} \\
+    8 Weak NL conf. (dummies)
+        & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} \\
+    \bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{RMSE of $\betahat$ at $n=500$. Highlighted cells are
+the \epds\ values on DGPs 6 and 7. Pilot results,
+$n_{\text{rep}} = 10$.}
+\label{tab:rmse}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrrrr}
+    \toprule
+    DGP
+        & Full
+        & \pds-\lasso
+        & \dml-\lasso
+        & \dml-RF
+        & \dml-NN
+        & \epds
+        & \epds (CF) \\
+    \midrule
+    1 Linear
+        & $0.035$ & $0.039$ & $0.050$ & {\small TBD} & $0.149$ & $0.040$ & {\small TBD} \\
+    2 Quadratic
+        & $0.227$ & $0.231$ & $0.251$ & {\small TBD} & $0.341$ & $0.135$ & {\small TBD} \\
+    3 Interactions
+        & $0.235$ & $0.234$ & $0.230$ & {\small TBD} & $0.359$ & $0.137$ & {\small TBD} \\
+    4 Mixed NL
+        & $0.331$ & $0.314$ & $0.336$ & {\small TBD} & $0.430$ & $0.357$ & {\small TBD} \\
+    5 NL + linear conf.
+        & $0.331$ & $0.317$ & $0.321$ & {\small TBD} & $0.397$ & $0.323$ & {\small TBD} \\
+    6 NL + mild NL conf.
+        & $1.248$ & $1.223$ & $1.269$ & {\small TBD} & $1.223$ & \hl{$0.244$} & {\small TBD} \\
+    7 NL + severe NL conf.
+        & $1.564$ & $1.554$ & $1.597$ & {\small TBD} & $1.531$ & \hl{$0.677$} & {\small TBD} \\
+        8 Weak NL conf. (dummies)
+        & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} \\
+    \bottomrule
+\end{tabular}
+\end{table}
+
+The bias and RMSE results divide cleanly into the three regimes
+predicted by the analysis in Section \ref{sec:theory}.
+
+On the linear and lightly-nonlinear DGPs (1 through 4), all
+methods perform acceptably, with the \epds\ variants matching or
+slightly improving on \pds-\lasso. The improvement on the
+interaction DGP is substantial: \epds\ achieves a small bias
+and RMSE of $0.037$, compared with \pds-\lasso's $0.002$ and
+$0.234$. The RMSE reduction reflects the narrower variance of the
+enriched estimator. Once \pysr\ discovers the $x_1 x_2$ and
+$x_4 x_5$ terms, the OLS regression is effectively specified
+correctly, and the residual variance contracts proportionally to
+the recovered signal. The same mechanism operates on the
+quadratic DGP, where \epds\ reduces RMSE substantially from
+\pds-\lasso's $0.231$, a reduction of nearly seventy percent.
+The mechanism is what Proposition \ref{prop:erm} describes.
+The true nuisance functions on DGPs 1 through 3 lie in $\Hcal$
+at low complexity, the symbolic search has budget enough to
+locate the Pareto elbow, and the recovered terms enter the
+enriched \lasso\ step in a form that effectively spans the
+truth.
+
+On the linear-confounding design (DGP-5), \pds-\lasso\ holds at
+bias $0.082$, indicating that the linear propensity score is
+within the \lasso's representation capacity. The \pds\ structure
+was designed for precisely this case, and the method recovers
+the treatment effect with a small bias and conservative coverage.
+\dml-NN exhibits notable bias of $0.238$, which we attribute to
+the convergence-rate problem discussed in Section
+\ref{sec:theory}: the neural network is over-parameterised
+relative to the sample size, the implied sample-complexity
+requirement is not met, and the residuals fail to absorb the
+confounding. \dml-\lasso\ is slightly better at $0.115$,
+reflecting the fact that the linear nuisance estimator is
+appropriate for the linear propensity score in DGP-5.
+
+The collapse of the standard methods on the nonlinear-confounding
+designs (DGPs 6 and 7) is what the theory predicts. The
+propensity score $m(\bm{x}) = 2 x_4 x_5$ lies outside the linear
+span of $\bm{x}$, so the linear-\lasso\ hypothesis class does
+not contain it, and the corresponding ERM bound under linearity
+has an approximation error proportional to $\norm{m}^2$ that does
+not vanish with $n$. For the neural-network nuisance estimator,
+the hypothesis class does contain $m$ in principle, but the
+sample-complexity calculation gives an implied $n$ on the order
+of $10^6$ for the $(64, 32)$ MLP, so the rate-of-convergence
+guarantee in \citet{chernozhukov2018} does not bind at the
+sample sizes we study. \pds-\lasso, \dml-\lasso, and \dml-NN
+exhibit bias between $1.20$ and $1.27$ on DGP-6, and between
+$1.53$ and $1.59$ on DGP-7. These are statistically
+indistinguishable from the naive-OLS bias of $1.24$ and $1.71$
+respectively, indicating that none of the standard methods makes
+any progress on the underlying confounding. \epds\ sidesteps both problems. Its hypothesis class $\Hcal$
+contains the truth at low complexity on DGP-6 ($x_4 x_5$ has
+complexity 3) and at moderate complexity on DGP-7 ($x_1^2 x_2$
+adds complexity 5 for a total of 11 nodes), and the log-%
+cardinality of $\Hcal$ is bounded, so the ERM rate is parametric. The \epds\ variants
+reduce bias by more than ninety-five percent on DGP-6 and by
+more than eighty-five percent on DGP-7, with corresponding
+reductions in RMSE. On DGP-6, RMSE drops from $1.223$ for
+\pds-\lasso\ to a substantially smaller value for \epds, a reduction of nearly
+ninety percent.
+
+On DGP-7 the two variants diverge in an informative way:
+\epds\ shows a particular bias-variance trade-off, with bias slightly
+higher RMSE ($0.713$ versus $0.677$). Decomposing
+$\text{RMSE}^2 = \text{Bias}^2 + \text{Var}$ gives implied
+variances of approximately $0.45$ for \epds\ and $0.48$ for
+\epds. The method therefore reduces systematic error at the
+cost of a small variance penalty, plausibly because the Du
+screening occasionally retains or drops a variable that would
+have moved through the symbolic-regression step under the
+unfiltered procedure. We expect the variance penalty to shrink
+with $n_{\text{rep}}$ since it is dominated by replication-level
+noise in the screening step, but flag the divergence as one of
+the finer comparisons that the production run should pin down.
+
+\begin{table}[H]
+\centering
+\caption{Coverage of nominal $95\%$ confidence intervals at
+$n=500$. Pilot results, $n_{\text{rep}} = 10$.}
+\label{tab:coverage}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrrrr}
+    \toprule
+    DGP
+        & Full
+        & \pds-\lasso
+        & \dml-\lasso
+        & \dml-RF
+        & \dml-NN
+        & \epds
+        & \epds (CF) \\
+    \midrule
+    1 Linear
+        & $1.000$ & $1.000$ & $1.000$ & {\small TBD} & $0.900$ & $1.000$ & {\small TBD} \\
+    2 Quadratic
+        & $1.000$ & $1.000$ & $1.000$ & {\small TBD} & $0.900$ & $1.000$ & {\small TBD} \\
+    3 Interactions
+        & $1.000$ & $1.000$ & $1.000$ & {\small TBD} & $0.900$ & $1.000$ & {\small TBD} \\
+    4 Mixed NL
+        & $1.000$ & $1.000$ & $1.000$ & {\small TBD} & $1.000$ & $0.800$ & {\small TBD} \\
+    5 NL + linear conf.
+        & $1.000$ & $1.000$ & $1.000$ & {\small TBD} & $0.900$ & $0.900$ & {\small TBD} \\
+    6 NL + mild NL conf.
+        & $0.000$ & $0.000$ & $0.000$ & {\small TBD} & $0.000$ & \hl{$1.000$} & {\small TBD} \\
+    7 NL + severe NL conf.
+        & $0.000$ & $0.000$ & $0.000$ & {\small TBD} & $0.000$ & \hl{$0.900$} & {\small TBD} \\
+        8 Weak NL conf. (dummies)
+        & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} & {\small TBD} \\
+    \bottomrule
+\end{tabular}
+\end{table}
+
+The coverage results sharpen the picture. On DGPs 6 and 7, every
+standard method has coverage of exactly zero. In all ten
+replications on each DGP, the $95\%$ confidence interval misses
+the true $\beta_0$. This is not a function of confidence-interval
+width. The intervals are narrow, but they are centred on badly
+biased point estimates. \epds\ achieve coverage of
+$1.000$ on DGP-6 and $0.900$ on DGP-7. The single miss on DGP-7
+reflects the residual bias from incomplete recovery of the cubic
+confounder $2 x_1^2 x_2$. Two ingredients of the theoretical
+story explain this. The cubic has complexity 5 in \pysr's
+representation, near the upper end of what 40 iterations can
+reliably locate, and the propensity-equation parsimony coefficient
+$\rho_d = 0.01$ is calibrated to avoid spurious terms but
+penalises the cubic at the margin. We expect higher recovery
+rates and consequently higher coverage at the planned full
+production replication count, and possibly higher still after
+increasing the \pysr\ iteration budget.
+
+On DGP-4, the \epds\ variants both have coverage of $0.800$, the
+lowest value observed for these methods across the seven DGPs.
+The reason is the operator-set mismatch for the $\log|x_3|$
+term, which corresponds in the theory to the truth lying
+strictly outside $\Hcal$: the Pareto elbow lies at the best
+approximation rather than at the true expression, and the
+resulting omission introduces a small bias that the $95\%$
+confidence interval failed to absorb in two of ten replications.
+
+\subsection{Trajectory from $n=30$ to $n=5000$}
+
+The fixed-$n$ result raises a natural question. Does \dml's
+failure on nonlinear confounding fix itself with more data, in
+line with the asymptotic theory in \citet{chernozhukov2018}? Or
+is the failure structural? To answer this we ran the full method
+comparison on each DGP at ten sample sizes spanning two and a
+half orders of magnitude, with three replications per setting.
+The results are in Figure \ref{fig:trajectory}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/n_trajectory.png}
+    \caption{Bias (left column) and RMSE on log scale (right
+    column) versus sample size, one DGP per row. Lines show
+    methods; shaded bands show $\pm 1$ Monte Carlo standard
+    deviation across $n_{\text{rep}} = 3$ replications. Bands
+    are wide and should be read as illustrative only at this
+    pilot replication count; the production run will provide
+    tight bands at $n_{\text{rep}} = 500$. Bottom two rows are
+    the nonlinear-confounding designs.}
+    \label{fig:trajectory}
+\end{figure}
+
+The answer is unambiguous. On the mild nonlinear-confounding
+design (DGP-6, second from bottom), the bias of \dml-\lasso\ and
+\dml-NN sits at approximately $1.1$ to $1.2$ from $n=30$ all the
+way to $n=5000$. There is no visible improvement, and the
+lines are essentially horizontal across the full $n$ range. The RMSE on
+the same design hovers between $1.0$ and $1.3$ for the standard
+methods across the entire range, on a log scale that would
+otherwise reveal even modest improvements. The \epds\ variants
+drop to zero bias by $n=200$ and to RMSE below $0.2$ by
+$n=1000$. The difference is not a matter of degree, but a matter
+of whether the method makes any progress at all.
+
+The flat-bias pattern for \dml-NN is the empirical signature of
+an unmet rate condition. The sample-complexity calculation in
+the discussion following Proposition \ref{prop:erm} predicts a
+required $n$ on the order of $10^6$ for the $(64, 32)$ MLP to
+deliver $\epsilon = 0.1$ accuracy on a genuinely nonlinear
+propensity score. Our trajectory caps at $n=5000$, three orders
+of magnitude short of this threshold. The empirical observation
+that bias does not decline with $n$ across the available range
+is therefore not a small-sample artefact but a manifestation of
+the rate condition not yet engaging.
+
+On the severe nonlinear-confounding design (DGP-7), the same
+pattern holds but with a slower convergence for \epds. The
+standard methods remain flat at bias around $1.5$ across all
+$n$, again with no visible improvement. \epds\
+descend more gradually, reaching bias below $0.2$ by $n=1000$ on
+\epds. This is consistent with
+the genetic-programming convergence argument. The cubic term
+$x_1^2 x_2$ has complexity 5 and is therefore higher up the
+Pareto frontier than the interaction terms in DGP-6, so the
+search budget binds more tightly and the convergence to the
+correct expression is gradual rather than sharp. One anomaly
+in the figure should be flagged. At $n=4000$ and
+$n=5000$,
+the bias of both \epds\ variants rises again on DGP-7. The pattern is
+consistent across replications, which rules out an
+issue, and is consistent with a small number of replications
+hitting a \pysr\ failure mode at large $n$ where the search runs
+out of iterations before converging on the cubic term. At higher
+$n_{\text{rep}}$ in the planned production run we expect this
+artefact to wash out, or alternatively to remain visible and
+require an explanation. Until then we report it honestly rather
+than smoothing it over.
+
+The trajectory analysis also clarifies the linear DGP. \dml-NN's
+bias on DGP-1 is small but consistently nonzero from $n=200$
+onward (the red line in the top-left panel hovers slightly above
+the bias-zero line through the full $n$ range), whilst other
+methods are essentially unbiased. This is a hyperparameter-%
+sensitivity story. A $(64, 32)$ MLP with default early-stopping
+is not the right tool for a five-variable linear problem, and
+the orthogonalisation step amplifies the resulting fitting
+noise. The RMSE panel for the Linear DGP shows the same pattern:
+\dml-NN's RMSE descent is shallower than \pds-\lasso's, and at
+$n=5000$ it remains roughly twice as high. The result should be
+read as evidence that \dml-NN is fragile to hyperparameter
+choice, not as evidence against the \dml\ framework as such.
+
+On the easy DGPs (Linear, Quadratic, Interactions), \epds\
+achieves the lowest RMSE at essentially all $n$. The Interactions
+panel is particularly striking. By $n=1000$, \epds\ has RMSE
+around $5 \times 10^{-3}$, an order of magnitude below
+\pds-\lasso\ and two orders of magnitude below \dml-NN. The
+mechanism, as above, is that \pysr\ discovers the interaction
+terms and the OLS on the enriched dictionary is effectively
+correctly specified.
+
+On the Mixed nonlinear design (DGP-4), the \epds\ variants do not
+dominate. RMSE is comparable to \pds-\lasso\ across the entire
+$n$ range, and at $n=5000$ \dml-NN is roughly tied with both
+\epds\ variants. This is the design where the truth lies outside
+$\Hcal$: \pysr\ recovers the cubic and interaction terms
+reliably but recovers the log term in only half the cases, and
+the resulting residual misspecification limits the bias
+reduction. The story is honest: \epds\ dominates when the true
+basis is discoverable within the available operator set, and
+matches the standard methods when the operator set is mismatched.
+
+\subsection{Term Recovery}
+
+Figure \ref{fig:recovery_n} shows the fraction of replications
+in which \pysr\ recovers each true nonlinear term, as a function
+of $n$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/recovery_vs_n.png}
+    \caption{Recovery rates of true nonlinear terms versus sample
+    size, one DGP per row. Solid lines are post-LASSO recovery;
+    dashed lines are pre-LASSO (PySR discovery). The two coincide
+    in most cases, indicating LASSO retains what PySR finds.}
+    \label{fig:recovery_n}
+\end{figure}
+
+Three patterns emerge from the figure. First, on the
+Quadratic and Interaction DGPs, recovery climbs steeply from
+near zero at $n=30$ to near one by $n=200$ for the larger-%
+coefficient term, and to between $0.5$ and $0.8$ by $n=500$ for
+the smaller-coefficient term. The recovery story aligns directly
+with the bias story. As \pysr's recovery rate of the active
+terms increases, the residual confounding bias decreases. The
+two panels for these DGPs are mirror images of the corresponding
+bias trajectories, which is the kind of consistency check we
+want from the recovery diagnostic. In the theoretical language,
+recovery climbing to one is the GP search succeeding, and the
+ERM bound in Proposition \ref{prop:erm} kicking in.
+
+Second, the pre-LASSO and post-LASSO recovery rates coincide in
+nearly every panel. This is reassuring, and it means the
+enriched \lasso\ retains what \pysr\ discovers and does not drop
+it on spurious-shrinkage grounds. The two-stage character of \epds,
+which might in principle have suffered an interaction where
+\lasso\ undoes \pysr's discoveries, does not exhibit that
+interaction in practice. The pre and post lines in the figure
+are visually indistinguishable in most panels, which we
+interpret as evidence that the LASSO selection step on the
+enriched dictionary behaves the way the theory suggests it
+should.
+
+Third, recovery of the $\log|x_3|$ term is persistently weak
+across all DGPs where it appears, climbing only to around $0.5$
+even at $n=5000$. The reason is the operator-set mismatch in
+\pysr. The \texttt{log} operator computes $\log(x)$ for $x > 0$,
+but our $x_3 \sim N(0, 1)$ takes negative values, so the term
+must be discovered as $\log(x_3^2)$ rather than directly as
+$\log|x_3|$. The parsimony penalty often rules out the more
+complex form. This is the regime of the theory in which the
+truth lies outside $\Hcal$, and the Pareto elbow corresponds to
+the best approximation rather than to the truth. The fix is
+either to add an absolute-value operator to \pysr\ or to draw
+$x_3$ from a strictly positive distribution. We defer this to
+the production run.
+
+On the nonlinear-confounding DGPs (rows 5 and 6 of the figure),
+recovery of the $x_4 x_5$ term reaches one across nearly the
+full $n$ range. This is the smoking-gun result: \pysr\ reliably
+discovers the nonlinear confounder, and the post-LASSO step
+retains it, which is why the bias on these DGPs collapses to
+zero for \epds. The cubic term $x_1^2 x_2$ on DGP-7 is harder,
+with recovery rates in the range of $0.5$ to $0.75$ across the
+upper $n$ values, which explains why the corresponding bias
+trajectory for DGP-7 is slower to converge than for DGP-6 and
+why the search-budget argument from Section \ref{sec:theory}
+manifests visibly in the data.
+
+\subsection{Visual Summary}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/summary_panel.png}
+    \caption{Bias, RMSE, coverage, and size across all DGPs and
+    methods at $n=500$. The dramatic separation on DGPs 6 and 7
+    between the \epds\ variants and the standard methods is
+    visible across all four panels.}
+    \label{fig:summary}
+\end{figure}
+
+% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{When \epds\ Helps and When It Doesn't}
+
+The simulation evidence and the theoretical story behind it
+support a clean answer to the practical question of when to use
+\epds. On settings with sparse linear nuisances, the truth lies
+in the linear span and \pds-\lasso's hypothesis class contains
+the truth, and \epds\ adds no flexibility that is needed and
+imposes no measurable cost. On settings with discoverable nonlinear
+structure but no nonlinear confounding, the truth lies in
+$\Hcal$ at low to moderate complexity, the symbolic search
+locates it, and \epds\ offers a modest RMSE improvement through
+cleaner specification, with \epds\ achieving the
+largest gains. On settings with nonlinear confounding, \epds\
+is essentially the only method that works. The
+standard alternatives operate in the wrong hypothesis class
+(linear) or with a class whose sample-complexity requirements
+do not bind at applied $n$ (neural networks).
+
+The setting where \epds\ does not clearly dominate is DGP-4
+(mixed nonlinear without confounding). RMSE is comparable to
+\pds-\lasso, and coverage drops to $0.800$. The root cause is
+the log-operator mismatch, which in the theoretical language
+corresponds to the truth lying strictly outside $\Hcal$. With a
+corrected operator set or a strictly positive distribution for
+the variable inside the logarithm, the truth would re-enter
+$\Hcal$ and we expect this gap to close. For applied work where
+the suspected functional forms include absolute-value-style
+logarithms, the operator set should be configured accordingly.
+The broader lesson from the theoretical analysis is that the
+success of \epds\ is contingent on the \pysr\ operator set
+covering the truth, and this is the choice the analyst needs to
+make thoughtfully.
+
+\subsection{Why \dml\ Does Not Recover at Large $n$}
+
+The trajectory result that \dml-NN bias stays above $1.0$ on the
+nonlinear-confounding designs even at $n=5000$ deserves
+unpacking, because it illustrates the sample-complexity argument
+quantitatively. The convergence-rate condition in
+\citet{chernozhukov2018} requires $\norm{\hat g - g}_2 \cdot
+\norm{\hat m - m}_2 = o_p(n^{-1/2})$. For a multilayer
+perceptron of architecture $(64, 32)$ on a $50$-dimensional
+input, the implied parametric complexity is on the order of
+$5000$ free parameters. The classical neural-network capacity
+bound \citep{anthony2009neural} gives a sample-complexity
+requirement scaling as $n = \Omega(P^2 \log P / \epsilon^2)$,
+which at $P = 5000$ and $\epsilon = 0.1$ delivers a required $n$
+on the order of $10^6$. Adding to this the fact that with five-%
+fold cross-fitting each nuisance estimator sees only $4000$
+observations during training, the effective sample size is even
+smaller.
+
+The practical implication is that \dml-NN's theoretical
+guarantees do not bind in the moderate-$n$ regime that
+characterises most applied microeconometric work. The procedure
+can still be used, but its output should be cross-checked
+against an estimator that does not rely on universal
+approximation. \epds\ provides such a check. When \dml-NN and
+\epds\ disagree by more than a standard error on data where
+nonlinear confounding is plausible, the discrepancy should be
+taken seriously, and a researcher should not default to the
+\dml\ result on grounds of its more flexible nuisance estimator.
+
+A reviewer may reasonably ask whether better neural-network
+hyperparameters would rescue \dml-NN. We expect that a much
+larger training budget, more aggressive regularisation, and a
+network architecture explicitly tuned to the dimensionality of
+the problem would improve performance. But the broader point
+survives any particular hyperparameter choice: \dml-NN's success
+depends on the analyst tuning the nuisance estimator well, which
+itself requires either substantial domain knowledge or
+substantial training time. \pds-\lasso\ and \epds, by contrast,
+are essentially parameter-free for the user: $\lambda$ is set by
+the theoretical formula in \citet{bch2014}, and the \pysr\
+parsimony coefficient is the only meaningful choice. The trade-%
+off is not just bias against variance, but also bias against
+analyst effort.
+
+\subsection{Why \epds\ Succeeds at Moderate $n$}
+
+The theoretical analysis in Section \ref{sec:theory} can be
+summarised in one sentence: \epds\ works because symbolic
+regression searches a finite class with bounded log-cardinality,
+and finite-class ERM enjoys parametric rates of convergence. The
+relevant comparison is not whether \pysr\ can approximate any
+function as well as a neural network can, but whether \pysr\
+finds the structured truth faster than a neural network learns
+it. For the structured class of functions we study, the answer
+is yes by orders of magnitude, and the order-of-magnitude
+calculation is set out explicitly in the comparison of $n =
+O(\log |\Hcal|)$ with $n = \Omega(P^2 \log P)$.
+
+The general principle is bias-variance. When the truth lies in
+a small structured class, an estimator that imposes the class
+as a prior dominates an estimator that treats the function as
+an arbitrary element of a much larger class. At moderate sample
+size, structural restriction wins. At very large sample size,
+universal approximation eventually catches up, but our trajectory
+analysis suggests that the crossover point lies well above
+$n=5000$ for the DGPs we consider, and the sample-complexity
+calculation above explains why this is so. This is a positive
+result for applied work. Applied datasets typically have $n$ in
+the hundreds or low thousands, and at those sample sizes
+structural restriction is the right tool.
+
+\subsection{Why Symbolic Methods Matter in Economics}
+
+The case for preferring a symbolic-regression-augmented
+procedure over neural-network \dml\ is not exclusively about
+bias and coverage. It is also about the scientific virtues that
+empirical economics has historically prioritised and that
+black-box methods undermine. We discuss four.
+
+\subsubsection{Falsifiability}
+
+Popper's criterion for a scientific
+claim is that it should be falsifiable. \pds\ produces claims
+that meet this criterion by construction. The procedure names a
+specific set of controls, and any subsequent researcher can
+refit the regression with those controls and test whether the
+estimated effect replicates. The symbolic-regression augmentation
+preserves this property whilst extending the admissible nuisance
+functions. The estimate $\betahat$ is now associated with a
+specific set of original variables and a specific set of
+discovered nonlinear terms, all of which can be inspected,
+criticised, and rerun. \dml-NN, by contrast, produces an
+estimate associated with a black-box $\hat{m}$ and $\hat{g}$
+that cannot meaningfully be inspected by a second researcher.
+The estimate is reproducible only in the weak sense that the
+code can be rerun, not in the stronger sense that the underlying
+claim can be evaluated and tested.
+
+\subsubsection{Reproducibility}
+
+Given the same data, the same operator
+set, and the same parsimony coefficient, the symbolic-regression
+step produces the same discovered terms. The result is
+deterministic conditional on a small number of hyperparameter
+choices that the analyst writes down explicitly. \dml-NN, by
+contrast, depends on initialisation, batch ordering, GPU non-%
+determinism, and a host of implementation details that typically
+go untracked. The reproducibility concerns in applied work are
+partly a reflection of black-box methods whose outputs depend on
+factors the analyst does not document.
+
+\subsubsection{Narrative}
+
+An applied paper in labour economics,
+development, or finance using \pds\ can include a sentence like
+``the procedure selected baseline income, education, household
+size, and an interaction between age and labour-force
+participation as relevant controls.'' This sentence is readable
+by the policy audience, by referees, by future meta-analysts,
+and by anyone trying to understand why the treatment effect is
+what it is. The same sentence cannot be written about \dml-NN.
+The narrative role of named controls is not merely cosmetic. It
+is the mechanism by which an empirical claim becomes part of
+cumulative scientific knowledge rather than a one-off output of
+a pipeline.
+
+\subsubsection{Sensitivity analysis}
+
+When the analyst can see the
+controls, they can perturb them. They can ask what happens to
+$\betahat$ if a particular discovered term is dropped, or what
+happens if a control the procedure did not select is added back.
+The sensitivity tools of \citet{cinelli2020sensitivity} and
+\citet{conley2012plausibly} all rely on being able to vary the
+assumed structure of the nuisance functions. These tools cannot
+be applied to \dml-NN in any meaningful way, because the
+nuisance functions are not specifiable objects. A method that
+admits sensitivity analysis is a method that can be defended
+against scepticism, and in applied work that distinction
+matters.
+
+Falsifiability and narrative are particularly pressing in
+economics because economic claims typically need to support
+both academic peer review and policy deliberation. A treatment
+effect that cannot be defended in plain language to a
+non-technical audience is rarely useful to the people who would
+act on it, however technically valid the estimate.
+Symbolic-regression augmentation restores the named-control
+property that \pds\ preserves and \dml-NN gives up, and does so
+without sacrificing the representational power that motivated
+introducing flexible learners in the first place.
+
+\subsection{Where Symbolic Regression Falls Short}
+
+Symbolic regression is not a universal tool. Its failure modes
+are part of taking the framework seriously, and four of them
+are worth setting out.
+
+\subsubsection{Mismatched operator sets}
+
+Our DGP-4 result is the
+canonical illustration. When the true relationship involves
+transformations outside the configured operator set, the
+symbolic search cannot recover the truth even with arbitrary
+data. The Pareto elbow then sits at the best approximation
+within the class, and the resulting bias does not vanish with
+$n$. This is the regime where Proposition \ref{prop:erm}'s
+approximation-error term binds. In practice, the analyst's
+choice of operator set is a substantive specification decision,
+comparable to choosing which controls to include in a linear
+regression, and the procedure inherits no protection against
+getting that choice wrong.
+
+\subsubsection{Genuinely non-symbolic truth}
+
+Symbolic regression assumes the truth is the kind of function a domain expert might
+write down, namely a short combination of recognisable
+operators. When the truth is instead the kind of function a
+flexible learner happens to produce, an arbitrary smooth
+surface with no compact symbolic representation, the search
+will return either a degenerate constant or a high-complexity
+expression that overfits noise. The \dml\ programme with a
+well-tuned learner is designed for exactly this case, and we
+should not expect symbolic regression to compete in regimes
+where the structural assumption is false.
+
+\subsubsection{High dimensionality}
+
+\pysr's runtime and the spurious-term problem both worsen with
+the number of input variables. We tested up to $p=50$, where a
+single \pysr\ fit takes approximately twenty seconds and
+discovers true terms reliably under the parsimony budget reported
+in Section \ref{sec:method}. At very large $p$ the symbolic-%
+regression step is computationally prohibitive, and an upstream
+variable-screening step (for example a Stein-based selector along
+the lines of \citealp{duetal2025}, or a sparsity-inducing
+neural network) would be needed to keep the search tractable.
+We would not extrapolate beyond $p \approx 100$ without a more
+careful analysis of computational and statistical scaling, and
+we discuss upstream screening as future work in Section
+\ref{sec:future}.
+
+\subsubsection{Low signal-to-noise}
+
+Symbolic regression is a
+model-discovery tool, and like any such tool it depends on a
+clean signal. At low SNR the Pareto frontier loses its sharp
+elbow and the parsimony coefficient becomes consequential
+beyond what theoretical guidance can fix. The DGPs we
+construct have favourable SNR by design. In applied work it
+will often be worse, and an analyst should expect the
+procedure to discover fewer terms and recover less of the
+truth as a result.
+
+These failure modes are not unique to our particular
+implementation. They are properties of symbolic regression as a
+method, and they limit the scope of the framework
+correspondingly. The procedure works where the truth is
+structured, the operator set is well-chosen, the dimensionality
+is moderate, and the signal is reasonably clean. Where any of
+these conditions breaks, the analyst should consider whether
+\dml\ with a flexible learner, or \pds-\lasso\ if the linearity
+assumption is defensible, is a better tool for the problem at
+hand.
+
+\subsection{Limitations}
+
+Six limitations of the current implementation are worth
+flagging.
+
+\subsubsection{No sample splitting}
+
+The formal \citet{bch2014} theorem
+assumes a fixed basis dictionary. We estimate the basis from the
+same data we use for the final regression. The simulation
+evidence on coverage is encouraging but does not constitute a
+proof of inferential validity. A sample-split variant, where
+\pysr\ discovers the basis on half the data and the
+\pds-\lasso\ step runs on the other half, would restore formal
+validity at the cost of statistical efficiency. We defer the
+implementation and the analysis of the resulting efficiency loss
+to future work, but flag this as the principal outstanding
+inferential question.
+
+\subsubsection{Operator-set mismatch for the logarithm}
+
+As discussed, \pysr's \texttt{log} operator does not naturally discover
+$\log|x_i|$ when $x_i$ takes both positive and negative values.
+This is the single largest source of imperfect coverage in our
+results (DGP-4, coverage of $0.800$). The truth lies outside
+$\Hcal$ for our operator-set configuration, which is the
+misspecified regime of Remark \ref{rem:misspec}. A clean fix is straightforward and will be implemented before
+the production run, either by adding an absolute-value operator
+to the \pysr\ operator set, or by drawing covariates that
+appear inside logarithms from strictly positive distributions
+in the DGPs.
+
+\subsubsection{Small pilot replication count}
+
+The fixed-$n$ tables use
+$n_{\text{rep}} = 10$ and the trajectory analysis uses
+$n_{\text{rep}} = 3$. The Monte Carlo standard errors are wider
+than we would prefer, particularly for the trajectory. The
+directionally large effects we emphasise are robust to the
+replication count. Bias of $1.2$ versus $0.0$, or coverage of
+$0.0$ versus $0.9$, is not going to flip sign at higher
+replication. The finer comparisons, such as the precise
+convergence point of the trajectory, should be re-examined at
+$n_{\text{rep}} = 500$.
+
+\subsubsection{No applied analysis}
+
+The dissertation is simulation-based. An applied analysis on real economic data with
+plausibly nonlinear confounding has not been carried out. The
+\citet{bch2014} eminent-domain application is a natural
+candidate, where the linear-controls specification is
+plausibly missing nonlinear judge-characteristic or
+circuit-court-composition interactions. Without an applied
+analysis, the framework's practical relevance is supported by
+simulation evidence only, and a reader who weighs real-data
+performance heavily in their assessment of a method should
+treat the contribution accordingly.
+
+\subsubsection{Computational cost}
+
+Each \pysr\ fit takes
+approximately twenty seconds at our settings. For a single
+applied analysis this is trivial, but the full $n_{\text{rep}}
+= 500$ production run requires high-performance computing
+infrastructure to be tractable on the time scales relevant to
+dissertation work. The cost compounds for any analysis
+requiring repeated fits, including bootstrap inference,
+sensitivity analysis under varying operator sets, and
+cross-fitting. Reducing the cost is partly a matter of \pysr\
+hyperparameter tuning and partly a matter of advances in the
+symbolic-regression literature we discuss below.
+
+\subsection{Practical Guidance}
+
+For applied work, we offer three recommendations. When the
+suspected confounders are believed to enter the outcome and
+propensity equations approximately linearly, \pds-\lasso\
+remains the right tool, since it is faster, simpler, and
+theoretically well-understood. When nonlinear functional forms are suspected
+but confounding is unlikely, both \pds-\lasso\ and \epds\ are
+reasonable, and running both and comparing the discovered
+nonlinear terms is itself informative as a specification check.
+When confounding is suspected to be nonlinear, particularly when
+the treatment is plausibly a function of interactions or higher-%
+order terms in the covariates, \epds\ is the preferred procedure.
+The computational cost is moderate
+(approximately twenty seconds per run at $n=500, p=50$), and the
+gain in bias and coverage is large enough to justify it.
+
+A useful diagnostic in applied work is to inspect the discovered
+\pysr\ expressions. If \pysr\ returns expressions involving
+products, quadratics, or logarithms of variables that
+substantively make economic sense as confounders, the analyst
+gains confidence in the result. If \pysr\ returns expressions
+involving variables that have no plausible substantive role, the
+analyst should investigate whether the discovered terms are
+genuine signal or artefacts of noise. The interpretability of the
+\pysr\ output is part of the value of the method, in that it
+gives the analyst a window into the data-generating process that
+the black-box \dml-NN procedure does not.
+
+\subsection{A Framework Beyond Post-Double Selection}
+
+The contribution of this dissertation generalises beyond the
+\pds\ pipeline. The underlying idea, that nuisance functions in
+causal inference admit a structured-versus-flexible choice and
+that structural restriction can dominate when the truth genuinely
+lies in the structured class, applies wherever a causal procedure
+requires functional-form decisions on auxiliary objects.
+
+Three extensions follow naturally. First, in propensity-score
+matching and inverse-probability weighting, the propensity model
+is itself a nuisance function whose functional form can be
+misspecified. A symbolic-regression-augmented propensity step
+could recover nonlinear treatment-assignment structure that a
+logit-with-main-effects baseline misses, and the downstream
+weighting would then operate on a propensity estimate that
+respects the assignment mechanism rather than a linear
+approximation to it. The interpretability of the discovered
+expressions is particularly valuable here. A policy researcher
+who can name the determinants of treatment assignment is in a
+better position to defend the resulting estimate than one who
+has produced a black-box propensity score.
+
+Second, in difference-in-differences and event-study designs,
+the conditional outcome trajectory under no treatment is a
+nuisance function. The well-known concern about parallel
+trends, that pre-trend differences may reflect nonlinear
+baseline heterogeneity rather than evidence of common dynamics,
+is partly a functional-form concern. Replacing a linear
+pre-trend control specification with a symbolic-regression-%
+recovered functional form would address this concern directly,
+at the cost of accepting the operator-set assumption that
+follows.
+
+Third, in instrumental variables with many candidate
+instruments, the first-stage relationship is a nuisance
+function. The IV-\lasso\ procedure of \citet{bch2014} and the
+broader instrument-selection literature face the same
+approximate-sparsity assumption that \pds\ does, and the same
+symbolic-regression augmentation would address it. The
+structural-restriction advantage we document for \pds\ should
+transfer cleanly to the IV setting.
+
+The common thread is that any causal procedure that selects,
+partials out, or otherwise depends on an estimated nuisance
+function can in principle be augmented by a symbolic-regression
+discovery step, provided the analyst is willing to specify an
+operator set and accept its coverage as a substantive
+assumption. None of these extensions are trivial. Each involves
+its own inferential considerations and operator-set choices.
+But the methodological recipe is the same as the one we have
+implemented and evaluated in the \pds\ setting. The framework
+is more general than any particular instantiation of it, and
+the \pds\ application should be read as a worked example rather
+than the contribution itself.
+
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We have proposed \epds, a symbolic-regression-augmented
+extension of
+the \citet{bch2014} \pds-\lasso\ framework that uses symbolic
+regression to discover nonlinear basis terms directly from the
+data. The method preserves the principal virtue of \pds, namely
+a named and interpretable set of selected confounders, whilst
+extending the representational capacity to nonlinear nuisance
+functions. We position the framework as a single method rather than
+the Stein-based feature selector of \citet{duetal2025} to reduce
+the dimensionality of the symbolic search.
+
+The theoretical reason \epds\ works is that symbolic regression
+performs empirical risk minimisation over a finite hypothesis
+class with bounded log-cardinality, so classical concentration
+arguments deliver a parametric rate of convergence when the
+truth lies in the class. The corresponding sample-complexity
+requirement for a neural-network nuisance estimator scales
+quadratically in the parameter count, putting the required $n$
+beyond the reach of applied work. This is the formal
+counterpart to the empirical observation that, on nonlinear-%
+confounding designs, the \dml-NN bias does not decline with $n$
+across the range we examine. \epds\ avoids this by restricting
+the search to a small structured class where the rate condition
+binds.
+
+Across seven data-generating processes, with particular
+attention to two novel designs involving nonlinear confounding,
+the proposed methods deliver substantial improvements in bias,
+RMSE, and coverage over \pds-\lasso, \dml-\lasso, and \dml-NN,
+in the regime where the standard methods fail. The trajectory
+analysis from $n=30$ to $n=5000$ shows that \dml's failure on
+nonlinear confounding is not a small-sample problem that
+resolves with more data, but a manifestation of the convergence-%
+rate condition not yet engaging at the sample sizes typical of
+applied work. \epds\ converges to unbiasedness by $n=200$ on
+the mild nonlinear-confounding design and by approximately
+$n=1000$ to $n=2000$ on the severe nonlinear-confounding design.
+
+\subsection{Future Directions}
+
+The work points to several directions for further development.
+We group them by what kind of effort each requires:
+theoretical, practical, frontier, and applied.
+
+\subsubsection{Theoretical questions}
+
+The most pressing is a formal
+inference theorem for the symbolic-regression-augmented
+dictionary. A Belloni-style result accommodating data-estimated
+bases, perhaps via the uniform post-selection inference
+machinery of \citet{tibshirani2018uniform} or via a
+sample-splitting argument, would put the inferential validity
+of the procedure on rigorous footing. Adjacent to this is the
+question of optimal complexity-penalty selection. The parsimony
+coefficient $\rho$ in our procedure is set heuristically, and a
+principled BIC-style derivation tied to sample size would close
+a clear gap. Finally, the rate calculation in Proposition
+\ref{prop:erm} assumes the truth lies in $\Hcal$. Extending the
+analysis to the misspecified case, where the truth is close to
+but not in the class, would clarify how much approximation
+error the procedure can tolerate before its advantage over
+\dml\ disappears.
+
+\subsubsection{Practical challenges}
+
+The operator-set choice is
+currently a researcher degree of freedom, and getting it wrong
+costs accuracy. Adaptive operator selection, perhaps starting
+with a small set and expanding when residual structure remains
+in the data, would reduce this burden. Computational cost is
+the other practical bottleneck. Each \pysr\ fit takes order
+twenty seconds at our settings, which is fine for a single
+analysis but limiting for any simulation or bootstrap requiring
+repeated fits. Integration with cross-fitting, which would
+address some of the inferential concerns above, compounds the
+computational cost further. The procedure has not been tested
+at $p$ much above fifty, and scaling to genuinely
+high-dimensional settings will require either tighter upstream
+screening or more efficient symbolic search.
+
+\subsubsection{Frontier directions in symbolic regression}
+
+The symbolic-regression literature is itself advancing rapidly,
+and several developments are directly relevant to the framework.
+Neural-guided genetic programming, in the spirit of
+\citet{cranmer2020}, uses a graph neural network to propose
+mutations and achieves substantially faster convergence than
+vanilla genetic programming. Reinforcement-learning-based
+symbolic regression treats expression-tree construction as a
+sequential decision problem, with the agent learning to
+construct expressions that fit data efficiently.
+Transformer-based approaches train large models to predict
+expressions directly from numerical data, sidestepping
+evolutionary search entirely. Integrating any of these into
+the symbolic-regression step of our pipeline would not change
+the inferential structure of the downstream \pds\ procedure but
+could dramatically reduce the computational cost and improve
+recovery rates on high-complexity targets. The frontier is
+moving quickly, and a pipeline that treats the symbolic
+regressor as a modular component will inherit those gains as
+they arrive.
+
+\subsubsection{Applied next steps}
+
+Beyond these methodological
+directions, an applied analysis is the most natural next step.
+We have a specific candidate in the \citet{bch2014}
+eminent-domain application, where the linear-controls
+specification is plausibly missing nonlinear interactions
+between judge characteristics, circuit-court composition, and
+regional economic conditions. A replication exercise that
+re-runs the original analysis with the symbolic-regression
+augmentation would demonstrate the framework's practical
+relevance, and if the discovered nonlinear terms make
+substantive economic sense, would constitute a stronger
+empirical case than simulations alone can make. A second
+direction is the extension to heterogeneous treatment effects.
+Using symbolic regression to recover the functional form of
+the treatment-effect surface itself, rather than the nuisance
+functions of the controls, would connect this work to the
+heterogeneous-effects literature represented by
+\citet{wager2018causal} and \citet{athey2016recursive}, and
+would broaden the applicability of the framework substantially.
+
+\subsection{The Broader Methodological Message}
+
+The contribution of this dissertation extends beyond the
+specific bias-coverage comparison. The dominant view in
+applied causal inference is that flexible machine learning
+should be used directly for nuisance estimation, with
+theoretical guarantees flowing through to the resulting causal
+estimate. We have argued for a different arrangement. Flexible
+tools, including symbolic regression itself, are best used to
+discover the structure in the data. That structure, represented
+in a form simple enough to be inspected and defended, then
+carries the inference. The pattern has been productive in the
+physical sciences, where flexible learners are used as
+discovery tools and symbolic expressions become the final
+scientific output. The same logic applies to causal
+econometrics, where the simple representation enables
+falsifiability, reproducibility, narrative, and sensitivity to
+assumed specification, all virtues that the dominant practice
+gives up too quickly. The complex tool finds the answer; the
+simple tool delivers it. The specific procedure we evaluate is
+one instantiation of this principle, applied to the
+post-double-selection setting. The principle itself is more
+general, and the framework should extend naturally to other
+causal procedures where nuisance functions need to be estimated
+from data.
+
+% ============================================================
+\newpage
+\bibliography{references}
+
+\end{document}

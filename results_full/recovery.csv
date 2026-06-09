@@ -1,0 +1,97 @@
+dgp,dgp_label,variant,equation,term,term_label,stage,recovery_rate,n_reps,true_coef,mean_coef,std_coef,coef_bias,coef_rmse
+dgp2,Quadratic,sr_pds,y,"('sq', 0, None)",x0^2,pre_lasso,0.926,500,5.0,,,,
+dgp2,Quadratic,sr_pds,y,"('sq', 0, None)",x0^2,post_lasso,0.926,500,5.0,4.997002565108832,0.10493471334599237,-0.002997434891168105,0.10497751512077422
+dgp2,Quadratic,sr_pds,y,"('sq', 2, None)",x2^2,pre_lasso,0.472,500,3.0,,,,
+dgp2,Quadratic,sr_pds,y,"('sq', 2, None)",x2^2,post_lasso,0.472,500,3.0,3.001577460585439,0.057448564264308714,0.001577460585438839,0.057470217660358834
+dgp2,Quadratic,sr_pds_cf,y,"('sq', 0, None)",x0^2,pre_lasso,1.0,100,5.0,,,,
+dgp2,Quadratic,sr_pds_cf,y,"('sq', 0, None)",x0^2,post_lasso,1.0,100,5.0,,,,
+dgp2,Quadratic,sr_pds_cf,y,"('sq', 2, None)",x2^2,pre_lasso,0.94,100,3.0,,,,
+dgp2,Quadratic,sr_pds_cf,y,"('sq', 2, None)",x2^2,post_lasso,0.94,100,3.0,,,,
+dgp3,Interactions,sr_pds,y,"('int', 0, 1)",x0*x1,pre_lasso,0.866,500,5.0,,,,
+dgp3,Interactions,sr_pds,y,"('int', 0, 1)",x0*x1,post_lasso,0.866,500,5.0,4.995157906543583,0.12234063831337189,-0.0048420934564168405,0.12243642289761633
+dgp3,Interactions,sr_pds,y,"('int', 3, 4)",x3*x4,pre_lasso,0.354,500,3.0,,,,
+dgp3,Interactions,sr_pds,y,"('int', 3, 4)",x3*x4,post_lasso,0.354,500,3.0,2.9955778965249635,0.10520990421949754,-0.004422103475036465,0.10530279647293217
+dgp3,Interactions,sr_pds_cf,y,"('int', 0, 1)",x0*x1,pre_lasso,1.0,100,5.0,,,,
+dgp3,Interactions,sr_pds_cf,y,"('int', 0, 1)",x0*x1,post_lasso,1.0,100,5.0,,,,
+dgp3,Interactions,sr_pds_cf,y,"('int', 3, 4)",x3*x4,pre_lasso,0.93,100,3.0,,,,
+dgp3,Interactions,sr_pds_cf,y,"('int', 3, 4)",x3*x4,post_lasso,0.93,100,3.0,,,,
+dgp4,Mixed nonlinear,sr_pds,y,"('cubic', 0, 1)",x0^2*x1,pre_lasso,0.928,500,5.0,,,,
+dgp4,Mixed nonlinear,sr_pds,y,"('cubic', 0, 1)",x0^2*x1,post_lasso,0.928,500,5.0,4.984097101961623,0.17220942991572266,-0.015902898038376634,0.1729421577230873
+dgp4,Mixed nonlinear,sr_pds,y,"('log', 2, None)",log|x2|,pre_lasso,0.358,500,-5.0,,,,
+dgp4,Mixed nonlinear,sr_pds,y,"('log', 2, None)",log|x2|,post_lasso,0.358,500,-5.0,-5.010891668044418,0.14993559864787157,-0.01089166804441799,0.15033067609335565
+dgp4,Mixed nonlinear,sr_pds,y,"('int', 3, 4)",x3*x4,pre_lasso,0.036,500,3.0,,,,
+dgp4,Mixed nonlinear,sr_pds,y,"('int', 3, 4)",x3*x4,post_lasso,0.036,500,3.0,3.0760473294148736,0.22430027550349366,0.07604732941487358,0.2368413179791004
+dgp4,Mixed nonlinear,sr_pds_cf,y,"('cubic', 0, 1)",x0^2*x1,pre_lasso,1.0,100,5.0,,,,
+dgp4,Mixed nonlinear,sr_pds_cf,y,"('cubic', 0, 1)",x0^2*x1,post_lasso,1.0,100,5.0,,,,
+dgp4,Mixed nonlinear,sr_pds_cf,y,"('log', 2, None)",log|x2|,pre_lasso,0.89,100,-5.0,,,,
+dgp4,Mixed nonlinear,sr_pds_cf,y,"('log', 2, None)",log|x2|,post_lasso,0.89,100,-5.0,,,,
+dgp4,Mixed nonlinear,sr_pds_cf,y,"('int', 3, 4)",x3*x4,pre_lasso,0.14,100,3.0,,,,
+dgp4,Mixed nonlinear,sr_pds_cf,y,"('int', 3, 4)",x3*x4,post_lasso,0.14,100,3.0,,,,
+dgp5,NL + linear conf.,sr_pds,y,"('cubic', 0, 1)",x0^2*x1,pre_lasso,0.896,500,5.0,,,,
+dgp5,NL + linear conf.,sr_pds,y,"('cubic', 0, 1)",x0^2*x1,post_lasso,0.896,500,5.0,5.004040906880559,0.16665730215915475,0.004040906880558914,0.16670628449877092
+dgp5,NL + linear conf.,sr_pds,y,"('log', 2, None)",log|x2|,pre_lasso,0.404,500,-5.0,,,,
+dgp5,NL + linear conf.,sr_pds,y,"('log', 2, None)",log|x2|,post_lasso,0.404,500,-5.0,-5.003535400586975,0.14784055295625798,-0.0035354005869754346,0.14788281900113515
+dgp5,NL + linear conf.,sr_pds,y,"('int', 3, 4)",x3*x4,pre_lasso,0.084,500,3.0,,,,
+dgp5,NL + linear conf.,sr_pds,y,"('int', 3, 4)",x3*x4,post_lasso,0.084,500,3.0,2.9655356828901116,0.27819048348707953,-0.0344643171098884,0.2803172029266595
+dgp5,NL + linear conf.,sr_pds_cf,y,"('cubic', 0, 1)",x0^2*x1,pre_lasso,1.0,100,5.0,,,,
+dgp5,NL + linear conf.,sr_pds_cf,y,"('cubic', 0, 1)",x0^2*x1,post_lasso,1.0,100,5.0,,,,
+dgp5,NL + linear conf.,sr_pds_cf,y,"('log', 2, None)",log|x2|,pre_lasso,0.91,100,-5.0,,,,
+dgp5,NL + linear conf.,sr_pds_cf,y,"('log', 2, None)",log|x2|,post_lasso,0.91,100,-5.0,,,,
+dgp5,NL + linear conf.,sr_pds_cf,y,"('int', 3, 4)",x3*x4,pre_lasso,0.36,100,3.0,,,,
+dgp5,NL + linear conf.,sr_pds_cf,y,"('int', 3, 4)",x3*x4,post_lasso,0.36,100,3.0,,,,
+dgp6,NL + mild NL conf.,sr_pds,y,"('cubic', 0, 1)",x0^2*x1,pre_lasso,0.908,500,5.0,,,,
+dgp6,NL + mild NL conf.,sr_pds,y,"('cubic', 0, 1)",x0^2*x1,post_lasso,0.908,500,5.0,4.993143882289696,0.1480529012895114,-0.0068561177103037,0.148211564765707
+dgp6,NL + mild NL conf.,sr_pds,y,"('log', 2, None)",log|x2|,pre_lasso,0.328,500,-5.0,,,,
+dgp6,NL + mild NL conf.,sr_pds,y,"('log', 2, None)",log|x2|,post_lasso,0.328,500,-5.0,-4.990111351321011,0.08330060838505582,0.009888648678988865,0.08388549773361846
+dgp6,NL + mild NL conf.,sr_pds,y,"('int', 3, 4)",x3*x4,pre_lasso,0.102,500,3.0,,,,
+dgp6,NL + mild NL conf.,sr_pds,y,"('int', 3, 4)",x3*x4,post_lasso,0.102,500,3.0,3.150503370326985,0.5465120835397101,0.15050337032698513,0.566856879586635
+dgp6,NL + mild NL conf.,sr_pds_cf,y,"('cubic', 0, 1)",x0^2*x1,pre_lasso,1.0,100,5.0,,,,
+dgp6,NL + mild NL conf.,sr_pds_cf,y,"('cubic', 0, 1)",x0^2*x1,post_lasso,1.0,100,5.0,,,,
+dgp6,NL + mild NL conf.,sr_pds_cf,y,"('log', 2, None)",log|x2|,pre_lasso,0.87,100,-5.0,,,,
+dgp6,NL + mild NL conf.,sr_pds_cf,y,"('log', 2, None)",log|x2|,post_lasso,0.87,100,-5.0,,,,
+dgp6,NL + mild NL conf.,sr_pds_cf,y,"('int', 3, 4)",x3*x4,pre_lasso,0.36,100,3.0,,,,
+dgp6,NL + mild NL conf.,sr_pds_cf,y,"('int', 3, 4)",x3*x4,post_lasso,0.36,100,3.0,,,,
+dgp6,NL + mild NL conf.,sr_pds,d,"('int', 3, 4)",x3*x4,pre_lasso,1.0,500,2.0,,,,
+dgp6,NL + mild NL conf.,sr_pds,d,"('int', 3, 4)",x3*x4,post_lasso,1.0,500,2.0,3.0499132554512998,0.48083391145829063,1.0499132554512998,1.154780972470808
+dgp6,NL + mild NL conf.,sr_pds_cf,d,"('int', 3, 4)",x3*x4,pre_lasso,1.0,100,2.0,,,,
+dgp6,NL + mild NL conf.,sr_pds_cf,d,"('int', 3, 4)",x3*x4,post_lasso,1.0,100,2.0,,,,
+dgp7,NL + severe NL conf.,sr_pds,y,"('cubic', 0, 1)",x0^2*x1,pre_lasso,0.95,500,5.0,,,,
+dgp7,NL + severe NL conf.,sr_pds,y,"('cubic', 0, 1)",x0^2*x1,post_lasso,0.95,500,5.0,4.8103387853857225,0.7095938027613338,-0.18966121461427754,0.7345030573430268
+dgp7,NL + severe NL conf.,sr_pds,y,"('log', 2, None)",log|x2|,pre_lasso,0.33,500,-5.0,,,,
+dgp7,NL + severe NL conf.,sr_pds,y,"('log', 2, None)",log|x2|,post_lasso,0.33,500,-5.0,-4.996445488584907,0.043206448596942414,0.003554511415092776,0.04335241344792984
+dgp7,NL + severe NL conf.,sr_pds,y,"('int', 3, 4)",x3*x4,pre_lasso,0.094,500,3.0,,,,
+dgp7,NL + severe NL conf.,sr_pds,y,"('int', 3, 4)",x3*x4,post_lasso,0.094,500,3.0,2.8927254137070926,0.626406174323045,-0.10727458629290743,0.635525398465197
+dgp7,NL + severe NL conf.,sr_pds_cf,y,"('cubic', 0, 1)",x0^2*x1,pre_lasso,1.0,100,5.0,,,,
+dgp7,NL + severe NL conf.,sr_pds_cf,y,"('cubic', 0, 1)",x0^2*x1,post_lasso,1.0,100,5.0,,,,
+dgp7,NL + severe NL conf.,sr_pds_cf,y,"('log', 2, None)",log|x2|,pre_lasso,0.84,100,-5.0,,,,
+dgp7,NL + severe NL conf.,sr_pds_cf,y,"('log', 2, None)",log|x2|,post_lasso,0.84,100,-5.0,,,,
+dgp7,NL + severe NL conf.,sr_pds_cf,y,"('int', 3, 4)",x3*x4,pre_lasso,0.47,100,3.0,,,,
+dgp7,NL + severe NL conf.,sr_pds_cf,y,"('int', 3, 4)",x3*x4,post_lasso,0.47,100,3.0,,,,
+dgp7,NL + severe NL conf.,sr_pds,d,"('cubic', 0, 1)",x0^2*x1,pre_lasso,0.93,500,2.0,,,,
+dgp7,NL + severe NL conf.,sr_pds,d,"('cubic', 0, 1)",x0^2*x1,post_lasso,0.93,500,2.0,4.819216716658695,0.7008153130912501,2.819216716658695,2.9050172114035777
+dgp7,NL + severe NL conf.,sr_pds,d,"('int', 3, 4)",x3*x4,pre_lasso,0.882,500,3.0,,,,
+dgp7,NL + severe NL conf.,sr_pds,d,"('int', 3, 4)",x3*x4,post_lasso,0.882,500,3.0,2.9367242446928032,1.0019298646850585,-0.06327575530719676,1.003925931011604
+dgp7,NL + severe NL conf.,sr_pds_cf,d,"('cubic', 0, 1)",x0^2*x1,pre_lasso,1.0,100,2.0,,,,
+dgp7,NL + severe NL conf.,sr_pds_cf,d,"('cubic', 0, 1)",x0^2*x1,post_lasso,1.0,100,2.0,,,,
+dgp7,NL + severe NL conf.,sr_pds_cf,d,"('int', 3, 4)",x3*x4,pre_lasso,1.0,100,3.0,,,,
+dgp7,NL + severe NL conf.,sr_pds_cf,d,"('int', 3, 4)",x3*x4,post_lasso,1.0,100,3.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds,y,"('cubic', 0, 1)",x0^2*x1,pre_lasso,0.892,500,5.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds,y,"('cubic', 0, 1)",x0^2*x1,post_lasso,0.892,500,5.0,4.988822455734055,0.17937897241527295,-0.011177544265945194,0.17972688513568694
+dgp8,Weak NL conf. (dummies),sr_pds,y,"('log', 2, None)",log|x2|,pre_lasso,0.348,500,-5.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds,y,"('log', 2, None)",log|x2|,post_lasso,0.348,500,-5.0,-4.991411979738182,0.16030432839967124,0.008588020261817597,0.16053420755616862
+dgp8,Weak NL conf. (dummies),sr_pds,y,"('int', 3, 4)",x3*x4,pre_lasso,0.042,500,3.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds,y,"('int', 3, 4)",x3*x4,post_lasso,0.042,500,3.0,2.9404360609276243,0.24754136881935176,-0.05956393907237567,0.25460674012047685
+dgp8,Weak NL conf. (dummies),sr_pds,y,"('int', 3, 6)",x3*x6,pre_lasso,0.056,500,2.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds,y,"('int', 3, 6)",x3*x6,post_lasso,0.056,500,2.0,2.066201498419142,0.32747408139404893,0.06620149841914191,0.33409865665371336
+dgp8,Weak NL conf. (dummies),sr_pds_cf,y,"('cubic', 0, 1)",x0^2*x1,pre_lasso,1.0,100,5.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds_cf,y,"('cubic', 0, 1)",x0^2*x1,post_lasso,1.0,100,5.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds_cf,y,"('log', 2, None)",log|x2|,pre_lasso,0.83,100,-5.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds_cf,y,"('log', 2, None)",log|x2|,post_lasso,0.83,100,-5.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds_cf,y,"('int', 3, 4)",x3*x4,pre_lasso,0.21,100,3.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds_cf,y,"('int', 3, 4)",x3*x4,post_lasso,0.21,100,3.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds_cf,y,"('int', 3, 6)",x3*x6,pre_lasso,0.28,100,2.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds_cf,y,"('int', 3, 6)",x3*x6,post_lasso,0.28,100,2.0,,,,
+dgp8,Weak NL conf. (dummies),sr_pds,d,"('int', 3, 6)",x3*x6,pre_lasso,0.968,500,0.5,,,,
+dgp8,Weak NL conf. (dummies),sr_pds,d,"('int', 3, 6)",x3*x6,post_lasso,0.968,500,0.5,1.991045683882554,0.35624234349356687,1.491045683882554,1.5330120151918516
+dgp8,Weak NL conf. (dummies),sr_pds_cf,d,"('int', 3, 6)",x3*x6,pre_lasso,1.0,100,0.5,,,,
+dgp8,Weak NL conf. (dummies),sr_pds_cf,d,"('int', 3, 6)",x3*x6,post_lasso,1.0,100,0.5,,,,
