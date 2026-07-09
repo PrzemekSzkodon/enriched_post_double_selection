@@ -1,0 +1,8 @@
+Complexity,Loss,Equation
+1,0.004920577,"3.510047e-7"
+2,0.0049174246,"square(Dbeer)"
+3,0.0048517627,"Dprison0 * -0.120134786"
+5,0.0048419596,"Dprison0 * (-0.12101564 - Lbeer)"
+7,0.004767135,"((Dprison0 + Lpolice) + Dprison0) * -0.05721815"
+9,0.0047433223,"((Lur + Dprison0) + (Lpolice * 0.3301027)) * -0.1575561"
+13,0.0047368235,"(Lur + ((square(square(-0.77296287)) * Lpolice) + Dprison0)) * (-0.14202964 - Dur)"

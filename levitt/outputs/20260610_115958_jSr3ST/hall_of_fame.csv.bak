@@ -1,0 +1,10 @@
+Complexity,Loss,Equation
+1,0.0056113387,"DxP0_2"
+3,0.003166661,"xP0 - xP0_2"
+6,0.0029889597,"(xP0 * 0.68680555) - abs(DxP0_t)"
+7,0.002929481,"xP0 * ((0.6787129 - DxP0_t) - DxP0_t)"
+8,0.0027724137,"DxP0 / square(square(square(0.9276967 + DxP0_t)))"
+10,0.0023700844,"(DxP0 - -0.010308034) / square(square(square(DxP0_t + 0.91701275)))"
+12,0.0022869129,"((Linc0 + DxP0) - -0.01039476) / square(square(square(DxP0_t + 0.9187847)))"
+14,0.00218951,"(Linc0 + ((DxP0 - -0.008352545) / square(square(square(DxP0_t + 1.344276))))) / 0.0672451"
+16,0.0020847628,"((DxP0 + (Linc0 - -0.011659014)) / square(DxP0 + square(square(0.8656237 + DxP0_t)))) / 1.3731835"

@@ -1,0 +1,9 @@
+Complexity,Loss,Equation
+1,0.0021458925,"-0.001514764"
+3,0.0020183823,"Linc0_2_t_2 * -80.70467"
+5,0.0020080975,"(Linc0_2_t_2 * -80.68105) - Dur_Dgun"
+6,0.0020056702,"(Linc0_2_t_2 * -80.82173) - abs(Dur_Dgun)"
+7,0.0020002527,"((Linc0_2_t_2 * -80.72388) - Dur_Dgun) - Dur_Dgun"
+8,0.0019825546,"((Linc0_2_t_2 * -80.48276) - Dafdc_Dgun) - abs(Dafdc_Dgun)"
+9,0.0019227609,"(Linc0_2_t_2 / -0.39733204) / ((0.03358716 - Dafdc_Dgun_t) - Dafdc_Dgun)"
+11,0.0019160985,"(Linc0_2_t_2 / (-0.32203904 + Dprison_Dur_t)) / ((0.03358716 - Dafdc_Dgun) - Dafdc_Dgun_t)"

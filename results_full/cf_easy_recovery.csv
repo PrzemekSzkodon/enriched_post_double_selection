@@ -1,0 +1,11 @@
+dgp,dgp_label,equation,term,term_label,mean_fold_pre,mean_fold_post,n_reps
+dgp2,Quadratic,y,"('sq', 0, None)",x0^2,0.884,0.884,100
+dgp2,Quadratic,y,"('sq', 2, None)",x2^2,0.456,0.456,100
+dgp3,Interactions,y,"('int', 0, 1)",x0*x1,0.826,0.826,100
+dgp3,Interactions,y,"('int', 3, 4)",x3*x4,0.422,0.422,100
+dgp4,Mixed nonlinear,y,"('log', 2, None)",log|x2|,0.368,0.368,100
+dgp4,Mixed nonlinear,y,"('cubic', 0, 1)",x0^2*x1,0.916,0.916,100
+dgp4,Mixed nonlinear,y,"('int', 3, 4)",x3*x4,0.024,0.024,100
+dgp5,NL + linear conf.,y,"('log', 2, None)",log|x2|,0.42,0.42,100
+dgp5,NL + linear conf.,y,"('cubic', 0, 1)",x0^2*x1,0.898,0.898,100
+dgp5,NL + linear conf.,y,"('int', 3, 4)",x3*x4,0.108,0.108,100

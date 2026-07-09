@@ -1,0 +1,9 @@
+bias,rmse,coverage,size,median,std,n_reps,dgp,dgp_label,estimator,est_label,n,n_rep
+-0.0217,0.0491,0.918,1.0,0.4777,0.0441,500,dgp1,Linear,pds_poly3,PDS-LASSO (poly-3),500,500
+-0.0143,0.0473,0.926,1.0,0.4851,0.0451,500,dgp2,Quadratic,pds_poly3,PDS-LASSO (poly-3),500,500
+-0.0085,0.0454,0.952,1.0,0.4924,0.0446,500,dgp3,Interactions,pds_poly3,PDS-LASSO (poly-3),500,500
+-0.4172,0.4292,0.024,0.124,0.0867,0.101,500,dgp4,Mixed nonlinear,pds_poly3,PDS-LASSO (poly-3),500,500
+-0.4178,0.4314,0.042,0.108,0.0821,0.1076,500,dgp5,NL + linear conf.,pds_poly3,PDS-LASSO (poly-3),500,500
+-0.417,0.4291,0.024,0.124,0.0867,0.101,500,dgp6,NL + mild NL conf.,pds_poly3,PDS-LASSO (poly-3),500,500
+-0.4173,0.4294,0.024,0.124,0.0861,0.1013,500,dgp7,NL + severe NL conf.,pds_poly3,PDS-LASSO (poly-3),500,500
+-0.4344,0.4456,0.01,0.084,0.0691,0.0994,500,dgp8,Weak NL conf. (dummies),pds_poly3,PDS-LASSO (poly-3),500,500

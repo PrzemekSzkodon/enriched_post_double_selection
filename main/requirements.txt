@@ -1,0 +1,10 @@
+numpy
+pandas
+scikit-learn
+statsmodels
+scipy
+joblib
+tqdm
+matplotlib
+pysr>=0.18
+sympy

@@ -1,0 +1,15 @@
+dgp,dgp_label,equation,term,term_label,mean_fold_pre,mean_fold_post,n_reps
+dgp6,NL + mild NL conf.,d,"('int', 3, 4)",x3*x4,0.992,0.992,100
+dgp6,NL + mild NL conf.,y,"('log', 2, None)",log|x2|,0.36,0.36,100
+dgp6,NL + mild NL conf.,y,"('cubic', 0, 1)",x0^2*x1,0.86,0.86,100
+dgp6,NL + mild NL conf.,y,"('int', 3, 4)",x3*x4,0.076,0.076,100
+dgp7,NL + severe NL conf.,d,"('cubic', 0, 1)",x0^2*x1,1.0,1.0,100
+dgp7,NL + severe NL conf.,d,"('int', 3, 4)",x3*x4,0.988,0.988,100
+dgp7,NL + severe NL conf.,y,"('log', 2, None)",log|x2|,0.778,0.778,100
+dgp7,NL + severe NL conf.,y,"('cubic', 0, 1)",x0^2*x1,0.992,0.992,100
+dgp7,NL + severe NL conf.,y,"('int', 3, 4)",x3*x4,0.597,0.597,100
+dgp8,Weak NL conf. (dummies),d,"('int', 3, 6)",x3*x6,0.928,0.928,100
+dgp8,Weak NL conf. (dummies),y,"('log', 2, None)",log|x2|,0.356,0.356,100
+dgp8,Weak NL conf. (dummies),y,"('cubic', 0, 1)",x0^2*x1,0.862,0.862,100
+dgp8,Weak NL conf. (dummies),y,"('int', 3, 4)",x3*x4,0.036,0.036,100
+dgp8,Weak NL conf. (dummies),y,"('int', 3, 6)",x3*x6,0.046,0.046,100

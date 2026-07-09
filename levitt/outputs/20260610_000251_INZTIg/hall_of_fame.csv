@@ -1,0 +1,12 @@
+Complexity,Loss,Equation
+1,0.07550941,"-0.0022650063"
+3,0.075028606,"-2.7003313e-9 / Dpolice_Dinc"
+5,0.07393796,"Dpolice_2_t / (prisonBar_t_2 / 0.24452655)"
+7,0.069242075,"(Dinc_Dafdc_t / Lur_2) / (-0.98255867 - prisonBar_t)"
+8,0.06520434,"(Dinc_Dafdc_t / Lur_2) / (square(prisonBar_t) + -0.76613855)"
+10,0.06494674,"((Dinc_Dafdc_t / Lur_2) / (-0.76613855 + square(prisonBar_t))) - Dpolice_2_t"
+12,0.06477171,"((Dinc_Dafdc_t / Lur_2) / (-0.76613855 + (square(prisonBar_t) + Dinc))) - Dpolice_2_t"
+13,0.06476795,"((Dinc_Dafdc_t / Lur_2) / (-0.76613855 + (square(prisonBar_t) + abs(Dinc)))) - Dpolice_2_t"
+14,0.06461341,"(((Dinc_Dafdc_t / Lur_2) / ((Dinc + -0.76613855) + square(prisonBar_t))) - Dpolice_2_t) - Dpolice_2_t"
+15,0.064609654,"(((Dinc_Dafdc_t / Lur_2) / ((abs(Dinc) + square(prisonBar_t)) + -0.76613855)) - Dpolice_2_t) - Dpolice_2_t"
+16,0.064559415,"((((Dinc_Dafdc_t / Lur_2) / ((Dinc + square(prisonBar_t)) + -0.76613855)) - Dpolice_2_t) - Dpolice_2_t) - Lur_2"

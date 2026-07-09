@@ -1,0 +1,10 @@
+Complexity,Loss,Equation
+1,0.04994376,"-0.00087566266"
+2,0.049937613,"abs(Lur_2)"
+3,0.04972317,"Dprison_Dpov * 8.767534"
+5,0.04968126,"(Dprison_Dpov * 9.312568) - Lur"
+6,0.048800778,"(Dafdc0_t * 58973.758) * square(Dprison_Dpov)"
+7,0.048567638,"square(square(Dprison_Dpov * (Dafdc0_t * 864.9536)))"
+9,0.04854361,"square(square((Dafdc0_t * Dprison_Dpov) * 864.9536)) - Lur_2"
+11,0.048487175,"square(square(Dafdc0_t * ((Dprison_Dpov + (Lur_2 / -0.42666152)) * -687.3562)))"
+13,0.04835457,"abs(square(square(square((Dprison_Dpov + (Lur_2 * 1.8340608)) * (Dafdc0_t * -1115.8086)))))"

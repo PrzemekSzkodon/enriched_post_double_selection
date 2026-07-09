@@ -1,0 +1,8 @@
+Complexity,Loss,Equation
+1,0.0547787,"Dprison_Dpolice"
+3,0.054686155,"1.0702622e-6 / Dprison_Dpov"
+4,0.05401487,"square(Dprison_Dpov) / Dprison_Dpolice"
+5,0.053567715,"Dinc / (-1.3056326 - Lprison)"
+7,0.043821916,"Dinc * (13.947132 / (-1.3065982 - Lprison))"
+9,0.040332336,"((Dinc * 9.979704) / (-1.3056326 - Lprison)) * 2.3307552"
+13,0.040192645,"(((6.1489434 / (-1.3056326 - (Lprison - Dinc))) + 0.7665136) * Dinc) / 0.27136922"

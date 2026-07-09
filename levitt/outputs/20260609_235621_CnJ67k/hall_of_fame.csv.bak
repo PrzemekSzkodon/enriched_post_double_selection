@@ -1,0 +1,13 @@
+Complexity,Loss,Equation
+1,0.06691728,"0.0026116082"
+2,0.06689124,"abs(Lur_2)"
+3,0.0663337,"Dur_Dinc / 7.0746464e-5"
+5,0.06404066,"Dur_Dinc / (0.0001006848 + Dprison_Dinc_t)"
+6,0.062322713,"Dur_Dinc / exp(Lprison * 9.389141)"
+8,0.055677522,"Dur_Dinc / square((1.3083518 + Lprison) * 0.085274756)"
+10,0.05394694,"(Dur_Dinc / square((1.3083518 + Lprison) * 0.085274756)) / 1.1219174"
+13,0.051820133,"((Dur_Dinc / 0.0010417388) / (Dpolice_2_t + exp(Lprison / exp(Lprison)))) / 0.546841"
+15,0.051806595,"((Dprison_Dinc_t + (Dur_Dinc / 0.0010417388)) / (exp(Lprison / exp(Lprison)) + Dpolice_2_t)) / 0.48798835"
+17,0.0516636,"((((Dur_Dinc / 0.0010417388) / (exp(Lprison / exp(Lprison)) + Dpolice_2_t)) / 0.48798835) - Lur_2) - Dpolice_2_t"
+18,0.051292736,"(Dur_Dinc / (0.0010417388 + Dprison_Dinc)) / ((exp(Lprison / exp(Lprison + Dpolice_2_t_2)) + Dpolice_2_t) / abs(Lprison))"
+20,0.051255934,"((Dur_Dinc / (0.0010417388 + Dprison_Dinc)) / ((exp(Lprison / exp(Lprison + Dpolice_2_t_2)) + Dpolice_2_t) / abs(Lprison))) - Lur_2"

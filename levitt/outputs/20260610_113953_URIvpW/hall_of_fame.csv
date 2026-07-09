@@ -1,0 +1,10 @@
+Complexity,Loss,Equation
+1,0.0019903416,"0.0003855999"
+2,0.001988984,"square(Lpov0_t)"
+3,0.0018651458,"Linc0_2_t * -61.798565"
+5,0.0018588135,"(Dinc_Dafdc - Linc0_2_t) * 62.819664"
+7,0.0018543436,"62.797424 * (Dinc_Dafdc - (Linc0_2_t - Dinc_Dafdc))"
+9,0.0018540419,"(afdcBar_2_t + 62.797424) * (Dinc_Dafdc - (Linc0_2_t - Dinc_Dafdc))"
+11,0.0018317072,"(Dinc_Dafdc - Linc0_2_t) * (62.797424 + (-0.4725428 / (afdcBar_t + 0.39835563)))"
+13,0.0018301726,"((Dinc_Dafdc - Linc0_2_t) * ((-0.506275 / (afdcBar_t + 0.39835563)) + 62.797424)) - Dprison_Dur_t"
+15,0.0018299373,"(Dinc_Dafdc - Linc0_2_t) * ((((afdcBar_t_2 / 0.5566589) / (afdcBar_t + 0.39835563)) + 62.797424) - Dprison_Dur_t)"

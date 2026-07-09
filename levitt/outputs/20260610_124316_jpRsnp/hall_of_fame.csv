@@ -1,0 +1,12 @@
+Complexity,Loss,Equation
+1,0.06414378,"-2.8967857e-5"
+2,0.06413413,"abs(Lur_2)"
+3,0.063984744,"Lur_2 - Lur"
+4,0.0639802,"abs(Lur_2) - Lur"
+5,0.06385143,"(Lur_2 - Dpolice_2_t) - Lur"
+6,0.0633299,"Lur / (1.732712 - square(Lprison))"
+7,0.06143709,"Dpolice_2_t / (abs(-1.707674) - square(Lprison))"
+9,0.061421275,"Dpolice_2_t / (abs(-1.707674) - square(Lprison - Dprison_Dinc_t))"
+10,0.061405674,"Dpolice_2_t / (abs(-1.707674) - (square(Lprison) + abs(Dinc_t_2)))"
+11,0.05928666,"Dpolice_2_t / (abs(-1.707674) - (Dprison_Dinc_t + square(Lur_2 + Lprison)))"
+13,0.057657965,"abs(Dpolice_2_t / (((Dinc_t_2 + Lur_2) + square(Lprison)) - 1.6976095)) * -1.3193663"

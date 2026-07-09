@@ -1,0 +1,73 @@
+dgp,equation,term,term_label,method,pre_lasso,post_lasso,dgp_label
+dgp2,y,"('sq', 0, None)",x0^2,PDS-LASSO (poly-2),1.0,1.0,Quadratic
+dgp2,y,"('sq', 0, None)",x0^2,PDS-LASSO (poly-3),1.0,1.0,Quadratic
+dgp2,y,"('sq', 0, None)",x0^2,SR-PDS,0.926,0.926,Quadratic
+dgp2,y,"('sq', 2, None)",x2^2,PDS-LASSO (poly-2),1.0,1.0,Quadratic
+dgp2,y,"('sq', 2, None)",x2^2,PDS-LASSO (poly-3),1.0,1.0,Quadratic
+dgp2,y,"('sq', 2, None)",x2^2,SR-PDS,0.472,0.472,Quadratic
+dgp3,y,"('int', 0, 1)",x0*x1,PDS-LASSO (poly-2),1.0,1.0,Interactions
+dgp3,y,"('int', 0, 1)",x0*x1,PDS-LASSO (poly-3),1.0,1.0,Interactions
+dgp3,y,"('int', 0, 1)",x0*x1,SR-PDS,0.866,0.866,Interactions
+dgp3,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-2),1.0,1.0,Interactions
+dgp3,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-3),1.0,1.0,Interactions
+dgp3,y,"('int', 3, 4)",x3*x4,SR-PDS,0.354,0.354,Interactions
+dgp4,y,"('log', 2, None)",log|x2|,PDS-LASSO (poly-2),0.0,0.0,Mixed nonlinear
+dgp4,y,"('log', 2, None)",log|x2|,PDS-LASSO (poly-3),0.0,0.0,Mixed nonlinear
+dgp4,y,"('log', 2, None)",log|x2|,SR-PDS,0.358,0.358,Mixed nonlinear
+dgp4,y,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-2),0.0,0.0,Mixed nonlinear
+dgp4,y,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-3),1.0,1.0,Mixed nonlinear
+dgp4,y,"('cubic', 0, 1)",x0^2*x1,SR-PDS,0.928,0.928,Mixed nonlinear
+dgp4,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-2),1.0,1.0,Mixed nonlinear
+dgp4,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-3),1.0,1.0,Mixed nonlinear
+dgp4,y,"('int', 3, 4)",x3*x4,SR-PDS,0.036,0.036,Mixed nonlinear
+dgp5,y,"('log', 2, None)",log|x2|,PDS-LASSO (poly-2),0.0,0.0,NL + linear conf.
+dgp5,y,"('log', 2, None)",log|x2|,PDS-LASSO (poly-3),0.0,0.0,NL + linear conf.
+dgp5,y,"('log', 2, None)",log|x2|,SR-PDS,0.404,0.404,NL + linear conf.
+dgp5,y,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-2),0.0,0.0,NL + linear conf.
+dgp5,y,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-3),1.0,1.0,NL + linear conf.
+dgp5,y,"('cubic', 0, 1)",x0^2*x1,SR-PDS,0.896,0.896,NL + linear conf.
+dgp5,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-2),1.0,1.0,NL + linear conf.
+dgp5,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-3),1.0,1.0,NL + linear conf.
+dgp5,y,"('int', 3, 4)",x3*x4,SR-PDS,0.084,0.084,NL + linear conf.
+dgp6,d,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-2),1.0,1.0,NL + mild NL conf.
+dgp6,d,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-3),1.0,1.0,NL + mild NL conf.
+dgp6,d,"('int', 3, 4)",x3*x4,SR-PDS,1.0,1.0,NL + mild NL conf.
+dgp6,y,"('log', 2, None)",log|x2|,PDS-LASSO (poly-2),0.0,0.0,NL + mild NL conf.
+dgp6,y,"('log', 2, None)",log|x2|,PDS-LASSO (poly-3),0.0,0.0,NL + mild NL conf.
+dgp6,y,"('log', 2, None)",log|x2|,SR-PDS,0.328,0.328,NL + mild NL conf.
+dgp6,y,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-2),0.0,0.0,NL + mild NL conf.
+dgp6,y,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-3),1.0,1.0,NL + mild NL conf.
+dgp6,y,"('cubic', 0, 1)",x0^2*x1,SR-PDS,0.908,0.908,NL + mild NL conf.
+dgp6,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-2),1.0,1.0,NL + mild NL conf.
+dgp6,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-3),1.0,1.0,NL + mild NL conf.
+dgp6,y,"('int', 3, 4)",x3*x4,SR-PDS,0.102,0.102,NL + mild NL conf.
+dgp7,d,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-2),0.0,0.0,NL + severe NL conf.
+dgp7,d,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-3),1.0,1.0,NL + severe NL conf.
+dgp7,d,"('cubic', 0, 1)",x0^2*x1,SR-PDS,0.93,0.93,NL + severe NL conf.
+dgp7,d,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-2),1.0,1.0,NL + severe NL conf.
+dgp7,d,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-3),1.0,1.0,NL + severe NL conf.
+dgp7,d,"('int', 3, 4)",x3*x4,SR-PDS,0.882,0.882,NL + severe NL conf.
+dgp7,y,"('log', 2, None)",log|x2|,PDS-LASSO (poly-2),0.0,0.0,NL + severe NL conf.
+dgp7,y,"('log', 2, None)",log|x2|,PDS-LASSO (poly-3),0.0,0.0,NL + severe NL conf.
+dgp7,y,"('log', 2, None)",log|x2|,SR-PDS,0.33,0.33,NL + severe NL conf.
+dgp7,y,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-2),0.0,0.0,NL + severe NL conf.
+dgp7,y,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-3),1.0,1.0,NL + severe NL conf.
+dgp7,y,"('cubic', 0, 1)",x0^2*x1,SR-PDS,0.95,0.95,NL + severe NL conf.
+dgp7,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-2),1.0,1.0,NL + severe NL conf.
+dgp7,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-3),1.0,1.0,NL + severe NL conf.
+dgp7,y,"('int', 3, 4)",x3*x4,SR-PDS,0.094,0.094,NL + severe NL conf.
+dgp8,d,"('int', 3, 6)",x3*x6,PDS-LASSO (poly-2),1.0,1.0,Weak NL conf. (dummies)
+dgp8,d,"('int', 3, 6)",x3*x6,PDS-LASSO (poly-3),1.0,1.0,Weak NL conf. (dummies)
+dgp8,d,"('int', 3, 6)",x3*x6,SR-PDS,0.968,0.968,Weak NL conf. (dummies)
+dgp8,y,"('log', 2, None)",log|x2|,PDS-LASSO (poly-2),0.0,0.0,Weak NL conf. (dummies)
+dgp8,y,"('log', 2, None)",log|x2|,PDS-LASSO (poly-3),0.0,0.0,Weak NL conf. (dummies)
+dgp8,y,"('log', 2, None)",log|x2|,SR-PDS,0.348,0.348,Weak NL conf. (dummies)
+dgp8,y,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-2),0.0,0.0,Weak NL conf. (dummies)
+dgp8,y,"('cubic', 0, 1)",x0^2*x1,PDS-LASSO (poly-3),1.0,1.0,Weak NL conf. (dummies)
+dgp8,y,"('cubic', 0, 1)",x0^2*x1,SR-PDS,0.892,0.892,Weak NL conf. (dummies)
+dgp8,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-2),1.0,1.0,Weak NL conf. (dummies)
+dgp8,y,"('int', 3, 4)",x3*x4,PDS-LASSO (poly-3),1.0,1.0,Weak NL conf. (dummies)
+dgp8,y,"('int', 3, 4)",x3*x4,SR-PDS,0.042,0.042,Weak NL conf. (dummies)
+dgp8,y,"('int', 3, 6)",x3*x6,PDS-LASSO (poly-2),1.0,1.0,Weak NL conf. (dummies)
+dgp8,y,"('int', 3, 6)",x3*x6,PDS-LASSO (poly-3),1.0,1.0,Weak NL conf. (dummies)
+dgp8,y,"('int', 3, 6)",x3*x6,SR-PDS,0.056,0.056,Weak NL conf. (dummies)

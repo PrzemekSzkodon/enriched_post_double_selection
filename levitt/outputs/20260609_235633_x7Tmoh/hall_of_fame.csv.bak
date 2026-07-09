@@ -1,0 +1,10 @@
+Complexity,Loss,Equation
+1,0.07345385,"-0.0008716247"
+3,0.07313789,"Dpolice_2_t * -1.9251939"
+4,0.0728475,"abs(Dpolice) * -0.42087004"
+5,0.072312094,"(Dpolice_2_t_2 - Dpolice) * Lprison"
+7,0.066007756,"(Dprison_Dpov / (Lprison - -1.2849457)) * -6.086713"
+13,0.06333764,"exp(square(Lprison * (Lprison * Lprison))) * ((Lprison / 0.05819989) * Dinc)"
+15,0.06268847,"Dinc * ((Lprison / 0.05819989) * exp(square((Lprison + Dpolice) * (Lprison * Lprison))))"
+17,0.06262832,"Dinc * (((Lprison + Dpolice) / 0.05819989) * exp(square(((Lprison + Dpolice) * Lprison) * Lprison)))"
+19,0.060960554,"(exp(square(Lprison * ((Dpolice * 5.965721) - (Lprison * Lprison)))) * Dinc) * ((Lprison + Lprison) / 0.14694789)"
